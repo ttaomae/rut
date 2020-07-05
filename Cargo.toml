@@ -1,0 +1,7 @@
+[package]
+name = "rut"
+version = "0.1.0"
+authors = ["Todd Taomae <ttaomae@gmail.com>"]
+edition = "2018"
+
+[dependencies]
