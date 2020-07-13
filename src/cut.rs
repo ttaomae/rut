@@ -128,39 +128,88 @@ mod tests {
     fn test_cut_bytes() {
         // One line
         let input = &[1, 2, 3, 4, 5, 6, 7, 8][..];
-        assert_cut_bytes(&mut input.clone(), "1-", vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n']);
+        assert_cut_bytes(
+            &mut input.clone(),
+            "1-",
+            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n'],
+        );
         assert_cut_bytes(&mut input.clone(), "2-5", vec![2, 3, 4, 5, b'\n']);
         assert_cut_bytes(&mut input.clone(), "-3,6-", vec![1, 2, 3, 6, 7, 8, b'\n']);
         assert_cut_bytes(&mut input.clone(), "1,2,4,8,16-", vec![1, 2, 4, 8, b'\n']);
 
         // Multiple lines.
-        let input = &[1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18][..];
-        assert_cut_bytes(&mut input.clone(), "1-",
-            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18, b'\n']);
-        assert_cut_bytes(&mut input.clone(), "2-4,7-",
-            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, 17, 18, b'\n']);
-        assert_cut_bytes(&mut input.clone(), "4-8",
-            vec![4, 5, 6, 7, 8, b'\n', 14, 15, 16, 17, 18, b'\n']);
+        let input = &[
+            1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18,
+        ][..];
+        assert_cut_bytes(
+            &mut input.clone(),
+            "1-",
+            vec![
+                1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18, b'\n',
+            ],
+        );
+        assert_cut_bytes(
+            &mut input.clone(),
+            "2-4,7-",
+            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, 17, 18, b'\n'],
+        );
+        assert_cut_bytes(
+            &mut input.clone(),
+            "4-8",
+            vec![4, 5, 6, 7, 8, b'\n', 14, 15, 16, 17, 18, b'\n'],
+        );
 
-        assert_cut_bytes(&[1, 2, b'\n', 3, 4][..], "1-", vec![1, 2, b'\n', 3, 4, b'\n']);
-        assert_cut_bytes(&[1, 2, b'\n', 3, 4, b'\n'][..], "1-", vec![1, 2, b'\n', 3, 4, b'\n']);
-        assert_cut_bytes(&[1, 2, b'\n', b'\n', 3, 4, b'\n'][..], "1-", vec![1, 2, b'\n', b'\n', 3, 4, b'\n']);
+        assert_cut_bytes(
+            &[1, 2, b'\n', 3, 4][..],
+            "1-",
+            vec![1, 2, b'\n', 3, 4, b'\n'],
+        );
+        assert_cut_bytes(
+            &[1, 2, b'\n', 3, 4, b'\n'][..],
+            "1-",
+            vec![1, 2, b'\n', 3, 4, b'\n'],
+        );
+        assert_cut_bytes(
+            &[1, 2, b'\n', b'\n', 3, 4, b'\n'][..],
+            "1-",
+            vec![1, 2, b'\n', b'\n', 3, 4, b'\n'],
+        );
 
         // Different sized lines.
         let input = &[1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16][..];
-        assert_cut_bytes(&mut input.clone(), "1-",
-            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, b'\n']);
-        assert_cut_bytes(&mut input.clone(), "5-",
-            vec![5, 6, 7, 8, b'\n', 15, 16, b'\n']);
-        assert_cut_bytes(&mut input.clone(), "2-4,7-9",
-            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, b'\n']);
+        assert_cut_bytes(
+            &mut input.clone(),
+            "1-",
+            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, b'\n'],
+        );
+        assert_cut_bytes(
+            &mut input.clone(),
+            "5-",
+            vec![5, 6, 7, 8, b'\n', 15, 16, b'\n'],
+        );
+        assert_cut_bytes(
+            &mut input.clone(),
+            "2-4,7-9",
+            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, b'\n'],
+        );
 
         // Many different sized lines.
-        let input = &[1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42, 43, 44, 45][..];
-        assert_cut_bytes(&mut input.clone(), "1-",
-            vec![1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42 ,43 ,44, 45, b'\n']);
-        assert_cut_bytes(&mut input.clone(), "3,5-",
-            vec![b'\n', b'\n', 23, b'\n', 33, b'\n', 43, 45, b'\n']);
+        let input = &[
+            1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42, 43, 44, 45,
+        ][..];
+        assert_cut_bytes(
+            &mut input.clone(),
+            "1-",
+            vec![
+                1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42, 43, 44,
+                45, b'\n',
+            ],
+        );
+        assert_cut_bytes(
+            &mut input.clone(),
+            "3,5-",
+            vec![b'\n', b'\n', 23, b'\n', 33, b'\n', 43, 45, b'\n'],
+        );
     }
 
     fn assert_cut_bytes(mut input: &[u8], ranges: &str, expected: Vec<u8>) {
@@ -194,7 +243,11 @@ mod tests {
         assert_cut_chars("abcdefghi\njklmnopqr", "1-", "abcdefghi\njklmnopqr\n");
         assert_cut_chars("abcdefghi\njklmnopqr\n", "1-", "abcdefghi\njklmnopqr\n");
         assert_cut_chars("abcdefghi\n\njklmnopqr\n", "1-", "abcdefghi\n\njklmnopqr\n");
-        assert_cut_chars("abcdefghi\n\njklmnopqr\n\n", "1-", "abcdefghi\n\njklmnopqr\n\n");
+        assert_cut_chars(
+            "abcdefghi\n\njklmnopqr\n\n",
+            "1-",
+            "abcdefghi\n\njklmnopqr\n\n",
+        );
         assert_cut_chars("abcdefghi\njklmnopqr", "4-7", "defg\nmnop\n");
         assert_cut_chars("abcdefghi\njklmnopqr", "-3,8-", "abchi\njklqr\n");
 
@@ -206,10 +259,16 @@ mod tests {
         assert_cut_chars("αaβbγgδdε\neζzηi", "2,4-5,9", "abγε\nζηi\n");
 
         // Many different sized lines.
-        assert_cut_chars("a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz", "1-",
-            "a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz\n");
-        assert_cut_chars("a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz", "3,5-",
-            "\n\nf\ni\nmo\nrtu\nyzzz\n");
+        assert_cut_chars(
+            "a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz",
+            "1-",
+            "a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz\n",
+        );
+        assert_cut_chars(
+            "a\nbc\ndef\nghij\nklmno\npqrstu\nvwyxzzz",
+            "3,5-",
+            "\n\nf\ni\nmo\nrtu\nyzzz\n",
+        );
     }
 
     fn assert_cut_chars(input: &str, ranges: &str, expected: &str) {
@@ -235,22 +294,61 @@ mod tests {
         assert_cut_fields("abc def ghi jkl", "3-", ' ', false, "ghi jkl\n");
 
         // Multiple lines.
-        assert_cut_fields("a bc def gh\ni jk lmn o pq", "1-", ' ', false, "a bc def gh\ni jk lmn o pq\n");
-        assert_cut_fields("a bc def gh\ni jk lmn o pq", "1,3,5", ' ', false, "a def\ni lmn pq\n");
+        assert_cut_fields(
+            "a bc def gh\ni jk lmn o pq",
+            "1-",
+            ' ',
+            false,
+            "a bc def gh\ni jk lmn o pq\n",
+        );
+        assert_cut_fields(
+            "a bc def gh\ni jk lmn o pq",
+            "1,3,5",
+            ' ',
+            false,
+            "a def\ni lmn pq\n",
+        );
         assert_cut_fields("a bc def gh\ni jk lmn o pq", "4-", ' ', false, "gh\no pq\n");
 
         // Multi-byte characters.
-        assert_cut_fields("αa β bγg δ\nd εeζz ηi", "1-", ' ', false, "αa β bγg δ\nd εeζz ηi\n");
+        assert_cut_fields(
+            "αa β bγg δ\nd εeζz ηi",
+            "1-",
+            ' ',
+            false,
+            "αa β bγg δ\nd εeζz ηi\n",
+        );
         assert_cut_fields("αa β bγg δ\nd εeζz ηi", "1,2", ' ', false, "αa β\nd εeζz\n");
-        assert_cut_fields("αa β bγg δ\nd εeζz ηi", "1,3-", ' ', false, "αa bγg δ\nd ηi\n");
+        assert_cut_fields(
+            "αa β bγg δ\nd εeζz ηi",
+            "1,3-",
+            ' ',
+            false,
+            "αa bγg δ\nd ηi\n",
+        );
 
         // Many different sized lines.
-        assert_cut_fields("a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z", "1-", ' ', false,
-            "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z\n");
-        assert_cut_fields("a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z", "1,4", ' ', false,
-            "a\nc\nf\nm p\ntuv \n");
-        assert_cut_fields("a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z", "3-", ' ', false,
-            "\ne\nijkl\no p q r s\n  y z\n");
+        assert_cut_fields(
+            "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z",
+            "1-",
+            ' ',
+            false,
+            "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z\n",
+        );
+        assert_cut_fields(
+            "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z",
+            "1,4",
+            ' ',
+            false,
+            "a\nc\nf\nm p\ntuv \n",
+        );
+        assert_cut_fields(
+            "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z",
+            "3-",
+            ' ',
+            false,
+            "\ne\nijkl\no p q r s\n  y z\n",
+        );
     }
 
     #[test]
@@ -268,8 +366,20 @@ mod tests {
         assert_cut_fields("abc", "4", ' ', true, "");
 
         // Multiple lines. No suppressed lines.
-        assert_cut_fields("a b c\nd e f\ng h i", "1-", ' ', false, "a b c\nd e f\ng h i\n");
-        assert_cut_fields("a b c\nd e f\ng h i", "1-", ' ', true, "a b c\nd e f\ng h i\n");
+        assert_cut_fields(
+            "a b c\nd e f\ng h i",
+            "1-",
+            ' ',
+            false,
+            "a b c\nd e f\ng h i\n",
+        );
+        assert_cut_fields(
+            "a b c\nd e f\ng h i",
+            "1-",
+            ' ',
+            true,
+            "a b c\nd e f\ng h i\n",
+        );
         assert_cut_fields("a b c\nd e f\ng h i", "4-", ' ', false, "\n\n\n");
         assert_cut_fields("a b c\nd e f\ng h i", "4-", ' ', true, "\n\n\n");
 
@@ -302,10 +412,23 @@ mod tests {
         assert_cut_fields("a⭐b⭐c⭐d⭐e", "2,4", '⭐', false, "b⭐d\n");
     }
 
-    fn assert_cut_fields(input: &str, ranges: &str, delimiter: char, suppress: bool, expected: &str) {
+    fn assert_cut_fields(
+        input: &str,
+        ranges: &str,
+        delimiter: char,
+        suppress: bool,
+        expected: &str,
+    ) {
         let mut output = Vec::new();
         let ranges: Ranges = ranges.parse().unwrap();
-        super::cut_fields(&mut input.as_bytes(), &mut output, delimiter, suppress, &ranges).unwrap();
+        super::cut_fields(
+            &mut input.as_bytes(),
+            &mut output,
+            delimiter,
+            suppress,
+            &ranges,
+        )
+        .unwrap();
         let actual = String::from_utf8(output).unwrap();
         assert_eq!(actual, expected);
     }
