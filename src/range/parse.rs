@@ -1,3 +1,4 @@
+use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -11,10 +12,21 @@ pub(crate) enum Token {
     Blank(char),
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Token::Number(n) => write!(f, "{}", n),
+            Token::Hyphen => write!(f, "-"),
+            Token::Comma => write!(f, ","),
+            Token::Blank(ch) => write!(f, "{}", ch),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) enum ParseRangesError {
     NumberedFromZero,
-    IndecipherableRange,
+    IndecipherableRange(Vec<Token>),
     DescendingRange,
     UnexpectedSeparator(Token),
     LexError(LexError),
@@ -23,6 +35,31 @@ pub(crate) enum ParseRangesError {
 #[derive(Debug)]
 pub(crate) enum LexError {
     UnrecognizedCharacter(char),
+}
+
+impl fmt::Display for ParseRangesError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseRangesError::NumberedFromZero => write!(f, "Ranges are numbered from one."),
+            ParseRangesError::IndecipherableRange(tokens) => {
+                let range = tokens
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<String>>()
+                    .join("");
+                write!(f, "Indecipherable range: \"{}\"", range)
+            }
+            ParseRangesError::DescendingRange => write!(f, "Ranges must be ascending."),
+            ParseRangesError::UnexpectedSeparator(t) => {
+                write!(f, "Expected separator but found '{}'.", t)
+            }
+            ParseRangesError::LexError(lex_err) => match lex_err {
+                LexError::UnrecognizedCharacter(ch) => {
+                    write!(f, "Unrecognized character '{}'.", ch)
+                }
+            },
+        }
+    }
 }
 
 /// Parses a string into `Ranges`.
@@ -126,7 +163,7 @@ fn parse_range<I: Iterator<Item = Token>>(
                 0 => Result::Err(ParseRangesError::NumberedFromZero),
                 _ => Result::Ok(CutRange::Unit(n - 1)),
             },
-            _ => Result::Err(ParseRangesError::IndecipherableRange),
+            _ => Result::Err(ParseRangesError::IndecipherableRange(range)),
         };
     }
     // Handle "-n" and "n-".
@@ -140,7 +177,7 @@ fn parse_range<I: Iterator<Item = Token>>(
                 0 => Result::Err(ParseRangesError::NumberedFromZero),
                 _ => Result::Ok(CutRange::ToEnd(start - 1)),
             },
-            _ => Result::Err(ParseRangesError::IndecipherableRange),
+            _ => Result::Err(ParseRangesError::IndecipherableRange(range)),
         };
     }
     // Handle "n-m".
@@ -153,11 +190,11 @@ fn parse_range<I: Iterator<Item = Token>>(
                 }
                 _ => Result::Err(ParseRangesError::DescendingRange),
             },
-            _ => Result::Err(ParseRangesError::IndecipherableRange),
+            _ => Result::Err(ParseRangesError::IndecipherableRange(range)),
         };
     }
 
-    Result::Err(ParseRangesError::IndecipherableRange)
+    Result::Err(ParseRangesError::IndecipherableRange(range))
 }
 
 #[cfg(test)]
