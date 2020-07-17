@@ -32,9 +32,12 @@ fn cut(args: Args) {
         ModeArgs::Characters(ranges) => for_each_file(filenames, |mut file| {
             cut::cut_characters(&mut file, &mut stdout, &ranges)
         }),
-        ModeArgs::Fields(ranges, delimiter, suppress) => for_each_file(filenames, |mut file| {
-            cut::cut_fields(&mut file, &mut stdout, delimiter, suppress, &ranges)
-        }),
+        ModeArgs::FieldsChar(ranges, delimiter, suppress) => {
+            for_each_file(filenames, |mut file| {
+                cut::cut_fields_with_char(&mut file, &mut stdout, delimiter, suppress, &ranges)
+            })
+        }
+        _ => unimplemented!(),
     }
 }
 
