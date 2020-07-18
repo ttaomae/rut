@@ -37,7 +37,18 @@ fn cut(args: Args) {
                 cut::cut_fields_with_char(&mut file, &mut stdout, delimiter, suppress, &ranges)
             })
         }
-        _ => unimplemented!(),
+        ModeArgs::FieldsRegex(ranges, delimiter, joiner, suppress) => {
+            for_each_file(filenames, |mut file| {
+                cut::cut_fields_with_regex(
+                    &mut file,
+                    &mut stdout,
+                    &delimiter,
+                    &joiner,
+                    suppress,
+                    &ranges,
+                )
+            })
+        }
     }
 }
 
