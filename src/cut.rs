@@ -298,7 +298,11 @@ mod tests {
 
     #[test]
     fn test_cut_characters() {
-        // One line
+        // Empty.
+        assert_cut_chars("", "1-", "");
+        assert_cut_chars("\n", "1-", "\n");
+
+        // One line.
         assert_cut_chars("abcdefghi", "1-", "abcdefghi\n");
         assert_cut_chars("abcdefghi", "1,3,5", "ace\n");
         assert_cut_chars("abcdefghi", "-2,8-", "abhi\n");
@@ -358,6 +362,10 @@ mod tests {
 
     #[test]
     fn test_cut_fields_with_char() {
+        // Empty.
+        assert_cut_fields_with_char("", "1-", ' ', false, "");
+        assert_cut_fields_with_char("\n", "1-", ' ', false, "\n");
+
         // One line.
         assert_cut_fields_with_char("a b c d e f", "1-", ' ', false, "a b c d e f\n");
         assert_cut_fields_with_char("a b c d e f   ", "1-", ' ', false, "a b c d e f   \n");
@@ -512,6 +520,10 @@ mod tests {
 
     #[test]
     fn test_cut_fields_with_regex() {
+        // Empty.
+        assert_cut_fields_with_regex("", "1-", r"\s+", "\t", false, "");
+        assert_cut_fields_with_regex("\n", "1-", r"\s+", "\t", false, "\n");
+
         // One line.
         assert_cut_fields_with_regex(
             "a b\tc  d\t\te \tf \t\t   g",
