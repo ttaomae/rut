@@ -11,16 +11,16 @@ where
     R: Read,
     W: Write,
 {
-    let reader = BufReader::new(input);
-    for line in reader.lines() {
-        match line {
-            Result::Ok(l) => {
-                let mut cut_bytes = cut(l.as_bytes(), ranges);
-                cut_bytes.push(b'\n');
-                output.write_all(&cut_bytes)?;
-            }
-            Result::Err(err) => return io::Result::Err(err),
+    let mut reader = BufReader::new(input);
+    let mut buf = Vec::new();
+    while reader.read_until(b'\n', &mut buf)? > 0 {
+        let mut cut_bytes = cut(&buf, ranges);
+        // Append '\n' if none exists.
+        if cut_bytes.is_empty() || cut_bytes[cut_bytes.len() - 1] != b'\n' {
+            cut_bytes.push(b'\n');
         }
+        output.write_all(&cut_bytes)?;
+        buf.clear();
     }
 
     io::Result::Ok(())
@@ -178,8 +178,8 @@ mod tests {
 
     #[test]
     fn test_cut_bytes() {
-        // One line
-        let input = &[1, 2, 3, 4, 5, 6, 7, 8][..];
+        // One line.
+        let input = &[1, 2, 3, 4, 5, 6, 7, 8];
         assert_cut_bytes(
             &mut input.clone(),
             "1-",
@@ -192,7 +192,7 @@ mod tests {
         // Multiple lines.
         let input = &[
             1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18,
-        ][..];
+        ];
         assert_cut_bytes(
             &mut input.clone(),
             "1-",
@@ -228,7 +228,7 @@ mod tests {
         );
 
         // Different sized lines.
-        let input = &[1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16][..];
+        let input = &[1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16];
         assert_cut_bytes(
             &mut input.clone(),
             "1-",
@@ -248,7 +248,7 @@ mod tests {
         // Many different sized lines.
         let input = &[
             1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42, 43, 44, 45,
-        ][..];
+        ];
         assert_cut_bytes(
             &mut input.clone(),
             "1-",
@@ -262,6 +262,31 @@ mod tests {
             "3,5-",
             vec![b'\n', b'\n', 23, b'\n', 33, b'\n', 43, 45, b'\n'],
         );
+
+        // Non-UTF-8.
+        let input = &[255, 254, 253, b'\n', 252, 251, 250];
+        assert_cut_bytes(
+            &mut input.clone(),
+            "1-",
+            vec![255, 254, 253, b'\n', 252, 251, 250, b'\n'],
+        );
+        assert_cut_bytes(&mut input.clone(), "2", vec![254, b'\n', 251, b'\n']);
+    }
+
+    #[test]
+    fn test_cut_bytes_trailing_newline() {
+        assert_cut_bytes(&[], "1-", vec![]);
+        assert_cut_bytes(&[b'\n'], "1-", vec![b'\n']);
+
+        assert_cut_bytes(&[1, 2, 3, 4], "1-", vec![1, 2, 3, 4, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4], "1,3", vec![1, 3, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], "1-", vec![1, 2, 3, 4, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], "2,4", vec![2, 4, b'\n']);
+
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8], "1-", vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8], "1,3", vec![1, 3, b'\n', 5, 7, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'], "1-", vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'], "2,4", vec![2, 4, b'\n', 6, 8, b'\n']);
     }
 
     fn assert_cut_bytes(mut input: &[u8], ranges: &str, expected: Vec<u8>) {
