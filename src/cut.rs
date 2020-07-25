@@ -274,17 +274,12 @@ mod tests {
         );
 
         assert_cut_bytes(
-            &[1, 2, b'\n', 3, 4][..],
+            &[1, 2, b'\n', 3, 4, b'\n'],
             "1-",
             vec![1, 2, b'\n', 3, 4, b'\n'],
         );
         assert_cut_bytes(
-            &[1, 2, b'\n', 3, 4, b'\n'][..],
-            "1-",
-            vec![1, 2, b'\n', 3, 4, b'\n'],
-        );
-        assert_cut_bytes(
-            &[1, 2, b'\n', b'\n', 3, 4, b'\n'][..],
+            &[1, 2, b'\n', b'\n', 3, 4, b'\n'],
             "1-",
             vec![1, 2, b'\n', b'\n', 3, 4, b'\n'],
         );
@@ -345,10 +340,26 @@ mod tests {
         assert_cut_bytes(&[1, 2, 3, 4, b'\n'], "1-", vec![1, 2, 3, 4, b'\n']);
         assert_cut_bytes(&[1, 2, 3, 4, b'\n'], "2,4", vec![2, 4, b'\n']);
 
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8], "1-", vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8], "1,3", vec![1, 3, b'\n', 5, 7, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'], "1-", vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'], "2,4", vec![2, 4, b'\n', 6, 8, b'\n']);
+        assert_cut_bytes(
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8],
+            "1-",
+            vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+        );
+        assert_cut_bytes(
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8],
+            "1,3",
+            vec![1, 3, b'\n', 5, 7, b'\n'],
+        );
+        assert_cut_bytes(
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+            "1-",
+            vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+        );
+        assert_cut_bytes(
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+            "2,4",
+            vec![2, 4, b'\n', 6, 8, b'\n'],
+        );
     }
 
     fn assert_cut_bytes(mut input: &[u8], ranges: &str, expected: Vec<u8>) {
@@ -540,6 +551,12 @@ mod tests {
         assert_cut_fields_with_char("abc\nd e f\nghi", "1-", ' ', true, "d e f\n");
         assert_cut_fields_with_char("abc\nd e f\nghi", "3", ' ', false, "abc\nf\nghi\n");
         assert_cut_fields_with_char("abc\nd e f\nghi", "3", ' ', true, "f\n");
+
+        // Suppress blank lines.
+        assert_cut_fields_with_char("a b c\n\nd e f", "1-", ' ', false, "a b c\n\nd e f\n");
+        assert_cut_fields_with_char("a b c\n\nd e f", "1-", ' ', true, "a b c\nd e f\n");
+        assert_cut_fields_with_char("a b c\n\nd e f", "2", ' ', false, "b\n\ne\n");
+        assert_cut_fields_with_char("a b c\n\nd e f", "2", ' ', true, "b\ne\n");
     }
 
     #[test]
@@ -782,6 +799,26 @@ mod tests {
             "a\ndef\ng\n",
         );
         assert_cut_fields_with_regex("a b c\ndef\ng\th\ti", "1", r"\s+", "\t", true, "a\ng\n");
+
+        // Suppress blank lines.
+        assert_cut_fields_with_regex(
+            "a b\tc\n\nd  e\t f",
+            "1-",
+            r"\s+",
+            "\t",
+            false,
+            "a\tb\tc\n\nd\te\tf\n",
+        );
+        assert_cut_fields_with_regex(
+            "a b\tc\n\nd  e\t f",
+            "1-",
+            r"\s+",
+            "\t",
+            true,
+            "a\tb\tc\nd\te\tf\n",
+        );
+        assert_cut_fields_with_regex("a b\tc\n\nd  e\t f", "3", r"\s+", "\t", false, "c\n\nf\n");
+        assert_cut_fields_with_regex("a b\tc\n\nd  e\t f", "3", r"\s+", "\t", true, "c\nf\n");
     }
 
     #[test]
