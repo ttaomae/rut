@@ -5,25 +5,30 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 use std::result::Result;
 use std::vec::Vec;
 
+enum Suppress {
+    /// Not applicable.
+    NA,
+    /// Do not output lines with no delimiter.
+    On,
+    /// Output entire line if it contains no delimiter.
+    Off,
+}
+
 /// Selects bytes from the input, based on the specified ranges, and writes it to the output.
 pub(crate) fn cut_bytes<R, W>(input: &mut R, output: &mut W, ranges: &Ranges) -> io::Result<()>
 where
     R: Read,
     W: Write,
 {
-    let mut reader = BufReader::new(input);
-    let mut buf = Vec::new();
-    while reader.read_until(b'\n', &mut buf)? > 0 {
-        let mut cut_bytes = cut(&buf, ranges);
-        // Append '\n' if none exists.
-        if cut_bytes.is_empty() || cut_bytes[cut_bytes.len() - 1] != b'\n' {
-            cut_bytes.push(b'\n');
-        }
-        output.write_all(&cut_bytes)?;
-        buf.clear();
-    }
-
-    io::Result::Ok(())
+    cut_any(
+        input,
+        output,
+        b'\n',
+        |bytes| Result::Ok(bytes.to_vec()),
+        Suppress::NA,
+        |bytes| bytes,
+        ranges,
+    )
 }
 
 /// Selects characters from the input, based on the specified ranges, and writes it to the output.
@@ -32,20 +37,35 @@ where
     R: Read,
     W: Write,
 {
-    let reader = BufReader::new(input);
-    for line in reader.lines() {
-        match line {
-            Result::Ok(l) => {
-                let chars: Vec<char> = l.chars().collect();
-                let mut cut_chars: String = cut(&chars[..], ranges).into_iter().collect();
-                cut_chars.push('\n');
-                output.write_all(cut_chars.as_bytes())?;
+    cut_any(
+        input,
+        output,
+        b'\n',
+        // Convert to chars.
+        |bytes| {
+            let result = bytes.clone();
+            match String::from_utf8(result) {
+                Ok(string) => Result::Ok(string.chars().collect()),
+                Err(_) => Result::Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Input was not valid UTF-8",
+                )),
             }
-            Result::Err(err) => return io::Result::Err(err),
-        }
-    }
-
-    io::Result::Ok(())
+        },
+        Suppress::NA,
+        |chars| {
+            chars
+                .iter()
+                .flat_map(|ch| {
+                    let mut buf = vec![0u8; 4];
+                    let len = ch.encode_utf8(&mut buf).len();
+                    buf.truncate(len);
+                    buf
+                })
+                .collect()
+        },
+        ranges,
+    )
 }
 
 /// Splits and selects fields separated by a delimiter character. Rejoins fields using the delimiter
@@ -61,13 +81,24 @@ where
     R: Read,
     W: Write,
 {
-    cut_fields(
+    cut_any(
         input,
         output,
-        |s| s.split(delimiter).map(|s| s.to_string()).collect(),
-        |fs| fs.join(&delimiter.to_string()),
-        suppress,
-        ranges,
+        b'\n',
+        |bytes| {
+            let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
+            })?;
+            let fields: Vec<String> = line.split(delimiter).map(|s| s.to_string()).collect();
+            Result::Ok(fields)
+        },
+        if suppress {
+            Suppress::On
+        } else {
+            Suppress::Off
+        },
+        |fields| fields.join(&delimiter.to_string()).as_bytes().to_vec(),
+        &ranges,
     )
 }
 
@@ -85,61 +116,92 @@ where
     R: Read,
     W: Write,
 {
-    cut_fields(
+    cut_any(
         input,
         output,
-        |s| delimiter.split(&s).map(|s| s.to_string()).collect(),
-        |fields| fields.join(&joiner),
-        suppress,
+        b'\n',
+        |bytes| {
+            let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
+            })?;
+            let fields: Vec<String> = delimiter.split(&line).map(|s| s.to_string()).collect();
+            Result::Ok(fields)
+        },
+        if suppress {
+            Suppress::On
+        } else {
+            Suppress::Off
+        },
+        |fields| fields.join(&joiner).as_bytes().to_vec(),
         ranges,
     )
 }
 
-/// Splits input into fields, selects fields based on the specified ranges, then joins and writes
-/// the selected fields to the output.
-fn cut_fields<R, W, S, J>(
+fn cut_any<R, W, S, T, J>(
     input: &mut R,
     output: &mut W,
+    line_delimiter: u8,
     split: S,
+    suppress: Suppress,
     join: J,
-    suppress: bool,
     ranges: &Ranges,
 ) -> io::Result<()>
 where
     R: Read,
     W: Write,
-    S: Fn(String) -> Vec<String>,
-    J: Fn(Vec<String>) -> String,
+    S: Fn(&Vec<u8>) -> Result<Vec<T>, io::Error>,
+    T: Clone + Debug,
+    J: Fn(Vec<T>) -> Vec<u8>,
 {
-    let reader = BufReader::new(input);
-    for line in reader.lines() {
-        match line {
-            Result::Ok(l) => {
-                let splits = split(l);
-                // Delimiter was not present.
-                if splits.len() == 1 {
-                    // Include entire line if supress is not enabled. Otherwise skip line.
-                    if !suppress {
-                        output.write_all(splits[0].as_bytes())?;
-                        output.write_all(&[b'\n'])?;
-                    }
-                } else {
-                    // Cut then rejoin using join function.
-                    let selection = cut(&splits[..], ranges);
-                    let mut line = join(selection);
-                    line.push('\n');
-                    output.write_all(line.as_bytes())?;
+    let mut reader = BufReader::new(input);
+    let mut buf = Vec::new();
+    while reader.read_until(line_delimiter, &mut buf)? > 0 {
+        if buf.ends_with(&[line_delimiter]) {
+            buf.pop();
+        }
+        // Split the line into elements.
+        let elements = split(&buf)?;
+
+        // Clear buffer for next line.
+        buf.clear();
+
+        match suppress {
+            // No special handling.
+            Suppress::NA => {
+                let cut_elements = select(&elements, &ranges);
+                let mut line = join(cut_elements);
+                line.push(line_delimiter);
+                output.write_all(&line)?;
+            }
+            // For cases which must handle suppression, a single element after splitting means
+            // there was no delimiter. Applies to Suppress::On and Supress::Off.
+            Suppress::On => {
+                // Only output lines which contain a delimiter.
+                if elements.len() != 1 {
+                    let cut_elements = select(&elements, &ranges);
+                    let mut line = join(cut_elements);
+                    line.push(line_delimiter);
+                    output.write_all(&line)?;
                 }
             }
-            Result::Err(err) => return io::Result::Err(err),
+            Suppress::Off => {
+                // Output entire line if there is no delimiter.
+                let mut line = if elements.len() == 1 {
+                    join(elements)
+                } else {
+                    let cut_elements = select(&elements, &ranges);
+                    join(cut_elements)
+                };
+                line.push(line_delimiter);
+                output.write_all(&line)?;
+            }
         }
     }
-
-    io::Result::Ok(())
+    Result::Ok(())
 }
 
-/// Cuts the input slice and returns a `Vec` containing only elements in the specified rangse.
-fn cut<T: Clone + Debug>(input: &[T], ranges: &Ranges) -> Vec<T> {
+/// Selects the specified ranges from the input slice and returns a `Vec` with those elements.
+fn select<T: Clone + Debug>(input: &[T], ranges: &Ranges) -> Vec<T> {
     let mut result = Vec::new();
 
     for range in ranges.elements() {
