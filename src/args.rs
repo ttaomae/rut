@@ -10,6 +10,7 @@ static SUPPRESS: &str = "suppress";
 static CHAR_DELIMITER: &str = "delimiter";
 static REGEX_DELIMITER: &str = "regex";
 static JOINER: &str = "joiner";
+static ZERO_TERMINATED: &str = "zero_terminated";
 static FILE: &str = "file";
 static USAGE: &str = r"rut -b <ranges> [file]...
     rut -c <ranges> [file]...
@@ -17,6 +18,7 @@ static USAGE: &str = r"rut -b <ranges> [file]...
 
 pub(crate) struct Args {
     pub(crate) mode_args: ModeArgs,
+    pub(crate) line_delimiter: u8,
     pub(crate) filenames: Vec<String>,
 }
 
@@ -113,6 +115,14 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .display_order(0)
         )
         .arg(
+            Arg::with_name(ZERO_TERMINATED)
+                .short("z")
+                .long("zero-terminated")
+                .help("Delimits items with a zero byte rather than a newline (0x0A)")
+                .multiple(true)
+                .takes_value(false)
+        )
+        .arg(
             Arg::with_name(FILE)
                 .index(1)
                 .help("Files to cut. Files will be processed in order. Use '-' to indicate stdin.")
@@ -157,10 +167,17 @@ pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
         panic!("Mode is not defined.");
     };
 
+    let line_delimiter = if matches.is_present(ZERO_TERMINATED) {
+        0
+    } else {
+        b'\n'
+    };
+
     // Safe to unwrap FILE value since a default value is specified.
     let filenames = matches.values_of(FILE).unwrap().map(String::from).collect();
     Result::Ok(Args {
         mode_args,
+        line_delimiter,
         filenames,
     })
 }
@@ -244,6 +261,16 @@ mod tests {
         assert_valid_args(vec!["rut", "-f1", "-s", "-s"]);
         assert_valid_args(vec!["rut", "-f1", "--suppress"]);
         assert_valid_args(vec!["rut", "-f1", "-s", "--suppress"]);
+
+        assert_valid_args(vec!["rut", "-b1", "-z"]);
+        assert_valid_args(vec!["rut", "-b1", "-zz"]);
+        assert_valid_args(vec!["rut", "-b1", "-z", "-z"]);
+        assert_valid_args(vec!["rut", "-c1", "-z"]);
+        assert_valid_args(vec!["rut", "-c1", "--zero-terminated"]);
+        assert_valid_args(vec!["rut", "-c1", "-z", "--zero-terminated"]);
+        assert_valid_args(vec!["rut", "-f1", "-z"]);
+        assert_valid_args(vec!["rut", "-f1", "--zero-terminated", "-z"]);
+        assert_valid_args(vec!["rut", "-f1", "-z", "-z", "-zz"]);
     }
 
     #[test]

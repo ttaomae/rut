@@ -22,22 +22,23 @@ fn main() {
 
 fn cut(args: Args) {
     let filenames = args.filenames;
+    let line_delimiter = args.line_delimiter;
 
     let mut stdout = std::io::stdout();
 
     match args.mode_args {
         ModeArgs::Bytes(ranges) => for_each_file(filenames, |mut file| {
-            cut::cut_bytes(&mut file, &mut stdout, b'\n', &ranges)
+            cut::cut_bytes(&mut file, &mut stdout, line_delimiter, &ranges)
         }),
         ModeArgs::Characters(ranges) => for_each_file(filenames, |mut file| {
-            cut::cut_characters(&mut file, &mut stdout, b'\n', &ranges)
+            cut::cut_characters(&mut file, &mut stdout, line_delimiter, &ranges)
         }),
         ModeArgs::FieldsChar(ranges, delimiter, suppress) => {
             for_each_file(filenames, |mut file| {
                 cut::cut_fields_with_char(
                     &mut file,
                     &mut stdout,
-                    b'\n',
+                    line_delimiter,
                     delimiter,
                     suppress,
                     &ranges,
@@ -49,7 +50,7 @@ fn cut(args: Args) {
                 cut::cut_fields_with_regex(
                     &mut file,
                     &mut stdout,
-                    b'\n',
+                    line_delimiter,
                     &delimiter,
                     &joiner,
                     suppress,
