@@ -27,14 +27,21 @@ fn cut(args: Args) {
 
     match args.mode_args {
         ModeArgs::Bytes(ranges) => for_each_file(filenames, |mut file| {
-            cut::cut_bytes(&mut file, &mut stdout, &ranges)
+            cut::cut_bytes(&mut file, &mut stdout, b'\n', &ranges)
         }),
         ModeArgs::Characters(ranges) => for_each_file(filenames, |mut file| {
-            cut::cut_characters(&mut file, &mut stdout, &ranges)
+            cut::cut_characters(&mut file, &mut stdout, b'\n', &ranges)
         }),
         ModeArgs::FieldsChar(ranges, delimiter, suppress) => {
             for_each_file(filenames, |mut file| {
-                cut::cut_fields_with_char(&mut file, &mut stdout, delimiter, suppress, &ranges)
+                cut::cut_fields_with_char(
+                    &mut file,
+                    &mut stdout,
+                    b'\n',
+                    delimiter,
+                    suppress,
+                    &ranges,
+                )
             })
         }
         ModeArgs::FieldsRegex(ranges, delimiter, joiner, suppress) => {
@@ -42,6 +49,7 @@ fn cut(args: Args) {
                 cut::cut_fields_with_regex(
                     &mut file,
                     &mut stdout,
+                    b'\n',
                     &delimiter,
                     &joiner,
                     suppress,
