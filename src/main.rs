@@ -33,13 +33,14 @@ fn cut(args: Args) {
         ModeArgs::Characters(ranges) => for_each_file(filenames, |mut file| {
             cut::cut_characters(&mut file, &mut stdout, line_delimiter, &ranges)
         }),
-        ModeArgs::FieldsChar(ranges, delimiter, suppress) => {
+        ModeArgs::FieldsChar(ranges, field_delimiter, output_delimiter, suppress) => {
             for_each_file(filenames, |mut file| {
                 cut::cut_fields_with_char(
                     &mut file,
                     &mut stdout,
                     line_delimiter,
-                    delimiter,
+                    field_delimiter,
+                    &output_delimiter,
                     suppress,
                     &ranges,
                 )

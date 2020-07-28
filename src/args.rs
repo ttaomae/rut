@@ -7,9 +7,9 @@ static BYTES: &str = "bytes";
 static CHARACTERS: &str = "characters";
 static FIELDS: &str = "fields";
 static SUPPRESS: &str = "suppress";
-static CHAR_DELIMITER: &str = "delimiter";
-static REGEX_DELIMITER: &str = "regex";
-static JOINER: &str = "joiner";
+static CHAR_DELIMITER: &str = "char_delimiter";
+static REGEX_DELIMITER: &str = "regex_delimiter";
+static OUTPUT_DELIMITER: &str = "output_delimiter";
 static ZERO_TERMINATED: &str = "zero_terminated";
 static FILE: &str = "file";
 static USAGE: &str = r"rut -b <ranges> [file]...
@@ -25,7 +25,7 @@ pub(crate) struct Args {
 pub(crate) enum ModeArgs {
     Bytes(Ranges),
     Characters(Ranges),
-    FieldsChar(Ranges, char, bool),
+    FieldsChar(Ranges, char, String, bool),
     FieldsRegex(Ranges, Regex, String, bool),
 }
 
@@ -95,11 +95,11 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .display_order(4)
         )
         .arg(
-            Arg::with_name(JOINER)
-                .short("j")
-                .long("join")
-                .value_name("joiner")
-                .help("Set the join string for regex separated fields")
+            Arg::with_name(OUTPUT_DELIMITER)
+                .short("o")
+                .long("output-delimiter")
+                .value_name("output-delim")
+                .help("Set the string used to delimit selected fields (-f).")
                 .takes_value(true)
                 .conflicts_with_all(&[BYTES, CHARACTERS])
                 .display_order(5)
@@ -121,6 +121,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .help("Delimits items with a zero byte rather than a newline (0x0A)")
                 .multiple(true)
                 .takes_value(false)
+                .display_order(1)
         )
         .arg(
             Arg::with_name(FILE)
@@ -139,7 +140,10 @@ pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
     } else if let Some(ranges) = matches.value_of(FIELDS) {
         let ranges = validate_ranges(ranges)?;
         let suppress = matches.is_present(SUPPRESS);
-        match (matches.value_of(REGEX_DELIMITER), matches.value_of(JOINER)) {
+        match (
+            matches.value_of(REGEX_DELIMITER),
+            matches.value_of(OUTPUT_DELIMITER),
+        ) {
             // Regex delimiter and joiner specified.
             (Some(regex), Some(joiner)) => {
                 let delimiter = validate_regex_delimiter(regex)?;
@@ -150,17 +154,30 @@ pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
                 let delimiter = validate_regex_delimiter(regex)?;
                 ModeArgs::FieldsRegex(ranges, delimiter, String::from("\t"), suppress)
             }
-            // No regex or joiner specified.
+            // Joiner specified without regex delimiter. Use character delimiter; \t by default.
+            (None, Some(output_delimiter)) => {
+                let field_delimiter =
+                    validate_char_delimiter(matches.value_of(CHAR_DELIMITER).unwrap_or("\t"))?;
+                ModeArgs::FieldsChar(
+                    ranges,
+                    field_delimiter,
+                    String::from(output_delimiter),
+                    suppress,
+                )
+            }
+            // No regex or joiner specified. Use character delimiter; \t by default.
             (None, None) => {
                 // Use specified character delimiter, or '\t' by default.
-                let delimiter =
+                let field_delimiter =
                     validate_char_delimiter(matches.value_of(CHAR_DELIMITER).unwrap_or("\t"))?;
-                ModeArgs::FieldsChar(ranges, delimiter, suppress)
+                // Use field delimiter as output delimiter.
+                ModeArgs::FieldsChar(
+                    ranges,
+                    field_delimiter,
+                    field_delimiter.to_string(),
+                    suppress,
+                )
             }
-            // Joiner specified without regex delimiter.
-            (None, Some(_)) => return Result::Err(String::from(
-                "The argument '--join <joiner>' can only be used with '--regex-delimiter <regex>'",
-            )),
         }
     } else {
         // Clap should guarantee that at least one mode flag is set.
@@ -250,11 +267,23 @@ mod tests {
         assert_valid_args(vec!["rut", "-f1", "--regex-delimiter=[a-z]"]);
         assert_valid_args(vec!["rut", "-f1", "--regex-delimiter", "[a-z]"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-j#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-j=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-j", "#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "--join=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "--join", "#"]);
+        assert_valid_args(vec!["rut", "-f1", "-o#"]);
+        assert_valid_args(vec!["rut", "-f1", "-o=#"]);
+        assert_valid_args(vec!["rut", "-f1", "-o", "#"]);
+        assert_valid_args(vec!["rut", "-f1", "--output-delimiter=#"]);
+        assert_valid_args(vec!["rut", "-f1", "--output-delimiter", "#"]);
+
+        assert_valid_args(vec!["rut", "-f1", "-d_", "-o#"]);
+        assert_valid_args(vec!["rut", "-f1", "-d_", "-o=#"]);
+        assert_valid_args(vec!["rut", "-f1", "-d_", "-o", "#"]);
+        assert_valid_args(vec!["rut", "-f1", "-d_", "--output-delimiter=#"]);
+        assert_valid_args(vec!["rut", "-f1", "-d_", "--output-delimiter", "#"]);
+
+        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o#"]);
+        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o=#"]);
+        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o", "#"]);
+        assert_valid_args(vec!["rut", "-f1", "-r_+", "--output-delimiter=#"]);
+        assert_valid_args(vec!["rut", "-f1", "-r_+", "--output-delimiter", "#"]);
 
         assert_valid_args(vec!["rut", "-f1", "-s"]);
         assert_valid_args(vec!["rut", "-f1", "-ss"]);
@@ -322,19 +351,12 @@ mod tests {
         // Field mode arguments (-s, -d, -r, -j) with non-field mode.
         assert_invalid_args(vec!["rut", "-b1", "-s"]);
         assert_invalid_args(vec!["rut", "-b1", "-d,"]);
-        assert_invalid_args(vec!["rut", "-b1", "-j#"]);
+        assert_invalid_args(vec!["rut", "-b1", "-o#"]);
         assert_invalid_args(vec!["rut", "-b1", "-r_"]);
         assert_invalid_args(vec!["rut", "-c1", "-s"]);
         assert_invalid_args(vec!["rut", "-c1", "-d,"]);
         assert_invalid_args(vec!["rut", "-c1", "-r_"]);
-        assert_invalid_args(vec!["rut", "-b1", "-j#"]);
-
-        // -d and -r together.
-        assert_invalid_args(vec!["rut", "-f1", "-d ", "-r\\s+"]);
-
-        // -j without -r.
-        assert_invalid_args(vec!["rut", "-f1", "-j!"]);
-        assert_invalid_args(vec!["rut", "-f1", "-d\\t", "-j!"]);
+        assert_invalid_args(vec!["rut", "-b1", "-o#"]);
     }
 
     fn assert_valid_args(args: Vec<&str>) {

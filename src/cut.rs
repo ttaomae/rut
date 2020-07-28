@@ -84,7 +84,8 @@ pub(crate) fn cut_fields_with_char<R, W>(
     input: &mut R,
     output: &mut W,
     line_delimiter: u8,
-    delimiter: char,
+    field_delimiter: char,
+    output_delimiter: &str,
     suppress: bool,
     ranges: &Ranges,
 ) -> io::Result<()>
@@ -100,7 +101,7 @@ where
             let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
                 io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
             })?;
-            let fields: Vec<String> = line.split(delimiter).map(|s| s.to_string()).collect();
+            let fields: Vec<String> = line.split(field_delimiter).map(|s| s.to_string()).collect();
             Result::Ok(fields)
         },
         if suppress {
@@ -108,7 +109,12 @@ where
         } else {
             Suppress::Off
         },
-        |fields| fields.join(&delimiter.to_string()).as_bytes().to_vec(),
+        |fields| {
+            fields
+                .join(&output_delimiter.to_string())
+                .as_bytes()
+                .to_vec()
+        },
         &ranges,
     )
 }
@@ -119,8 +125,8 @@ pub(crate) fn cut_fields_with_regex<R, W>(
     input: &mut R,
     output: &mut W,
     line_delimiter: u8,
-    delimiter: &Regex,
-    joiner: &str,
+    field_delimiter: &Regex,
+    output_delimiter: &str,
     suppress: bool,
     ranges: &Ranges,
 ) -> io::Result<()>
@@ -136,7 +142,10 @@ where
             let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
                 io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
             })?;
-            let fields: Vec<String> = delimiter.split(&line).map(|s| s.to_string()).collect();
+            let fields: Vec<String> = field_delimiter
+                .split(&line)
+                .map(|s| s.to_string())
+                .collect();
             Result::Ok(fields)
         },
         if suppress {
@@ -144,7 +153,7 @@ where
         } else {
             Suppress::Off
         },
-        |fields| fields.join(&joiner).as_bytes().to_vec(),
+        |fields| fields.join(&output_delimiter).as_bytes().to_vec(),
         ranges,
     )
 }
@@ -540,34 +549,44 @@ mod tests {
     #[test]
     fn test_cut_fields_with_char() {
         // Empty.
-        assert_cut_fields_with_char("", "1-", b'\n', ' ', false, "");
-        assert_cut_fields_with_char("\n", "1-", b'\n', ' ', false, "\n");
+        assert_cut_fields_with_char("", "1-", b'\n', ' ', " ", false, "");
+        assert_cut_fields_with_char("\n", "1-", b'\n', ' ', " ", false, "\n");
 
         // One line.
-        assert_cut_fields_with_char("a b c d e f", "1-", b'\n', ' ', false, "a b c d e f\n");
+        assert_cut_fields_with_char("a b c d e f", "1-", b'\n', ' ', " ", false, "a b c d e f\n");
         assert_cut_fields_with_char(
             "a b c d e f   ",
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a b c d e f   \n",
         );
-        assert_cut_fields_with_char("a b c d e f", "1,3,5", b'\n', ' ', false, "a c e\n");
-        assert_cut_fields_with_char("a b c d e f", "2-4,6-", b'\n', ' ', false, "b c d f\n");
-        assert_cut_fields_with_char("a b c d e f    ", "6-", b'\n', ' ', false, "f    \n");
-        assert_cut_fields_with_char("a b c d e f    ", "7-", b'\n', ' ', false, "   \n");
+        assert_cut_fields_with_char("a b c d e f", "1,3,5", b'\n', ' ', " ", false, "a c e\n");
+        assert_cut_fields_with_char("a b c d e f", "2-4,6-", b'\n', ' ', " ", false, "b c d f\n");
+        assert_cut_fields_with_char("a b c d e f    ", "6-", b'\n', ' ', " ", false, "f    \n");
+        assert_cut_fields_with_char("a b c d e f    ", "7-", b'\n', ' ', " ", false, "   \n");
 
         assert_cut_fields_with_char(
             "abc def ghi jkl",
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "abc def ghi jkl\n",
         );
-        assert_cut_fields_with_char("abc def ghi jkl", "2,4", b'\n', ' ', false, "def jkl\n");
-        assert_cut_fields_with_char("abc def ghi jkl", "3-", b'\n', ' ', false, "ghi jkl\n");
+        assert_cut_fields_with_char(
+            "abc def ghi jkl",
+            "2,4",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "def jkl\n",
+        );
+        assert_cut_fields_with_char("abc def ghi jkl", "3-", b'\n', ' ', " ", false, "ghi jkl\n");
 
         // Multiple lines.
         assert_cut_fields_with_char(
@@ -575,6 +594,7 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a bc def gh\ni jk lmn o pq\n",
         );
@@ -583,6 +603,7 @@ mod tests {
             "1,3,5",
             b'\n',
             ' ',
+            " ",
             false,
             "a def\ni lmn pq\n",
         );
@@ -591,6 +612,7 @@ mod tests {
             "4-",
             b'\n',
             ' ',
+            " ",
             false,
             "gh\no pq\n",
         );
@@ -601,6 +623,7 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "αa β bγg δ\nd εeζz ηi\n",
         );
@@ -609,6 +632,7 @@ mod tests {
             "1,2",
             b'\n',
             ' ',
+            " ",
             false,
             "αa β\nd εeζz\n",
         );
@@ -617,6 +641,7 @@ mod tests {
             "1,3-",
             b'\n',
             ' ',
+            " ",
             false,
             "αa bγg δ\nd ηi\n",
         );
@@ -627,6 +652,7 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a b\nc d e\nf gh ijkl\nm n o p q r s\ntuv wx   y z\n",
         );
@@ -635,6 +661,7 @@ mod tests {
             "1,4",
             b'\n',
             ' ',
+            " ",
             false,
             "a\nc\nf\nm p\ntuv \n",
         );
@@ -643,6 +670,7 @@ mod tests {
             "3-",
             b'\n',
             ' ',
+            " ",
             false,
             "\ne\nijkl\no p q r s\n  y z\n",
         );
@@ -651,16 +679,16 @@ mod tests {
     #[test]
     fn test_cut_fields_with_char_suppress() {
         // Single line. No suppress.
-        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', false, "a b c\n");
-        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', true, "a b c\n");
-        assert_cut_fields_with_char("a b c", "2", b'\n', ' ', false, "b\n");
-        assert_cut_fields_with_char("a b c", "2", b'\n', ' ', true, "b\n");
+        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', " ", false, "a b c\n");
+        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', " ", true, "a b c\n");
+        assert_cut_fields_with_char("a b c", "2", b'\n', ' ', " ", false, "b\n");
+        assert_cut_fields_with_char("a b c", "2", b'\n', ' ', " ", true, "b\n");
 
         // Single line. Suppress.
-        assert_cut_fields_with_char("abc", "1-", b'\n', ' ', false, "abc\n");
-        assert_cut_fields_with_char("abc", "1-", b'\n', ' ', true, "");
-        assert_cut_fields_with_char("abc", "4", b'\n', ' ', false, "abc\n");
-        assert_cut_fields_with_char("abc", "4", b'\n', ' ', true, "");
+        assert_cut_fields_with_char("abc", "1-", b'\n', ' ', " ", false, "abc\n");
+        assert_cut_fields_with_char("abc", "1-", b'\n', ' ', " ", true, "");
+        assert_cut_fields_with_char("abc", "4", b'\n', ' ', " ", false, "abc\n");
+        assert_cut_fields_with_char("abc", "4", b'\n', ' ', " ", true, "");
 
         // Multiple lines. No suppressed lines.
         assert_cut_fields_with_char(
@@ -668,6 +696,7 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a b c\nd e f\ng h i\n",
         );
@@ -676,11 +705,20 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             true,
             "a b c\nd e f\ng h i\n",
         );
-        assert_cut_fields_with_char("a b c\nd e f\ng h i", "4-", b'\n', ' ', false, "\n\n\n");
-        assert_cut_fields_with_char("a b c\nd e f\ng h i", "4-", b'\n', ' ', true, "\n\n\n");
+        assert_cut_fields_with_char(
+            "a b c\nd e f\ng h i",
+            "4-",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "\n\n\n",
+        );
+        assert_cut_fields_with_char("a b c\nd e f\ng h i", "4-", b'\n', ' ', " ", true, "\n\n\n");
 
         // Multiple lines. With suppressed lines.
         assert_cut_fields_with_char(
@@ -688,6 +726,7 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a b c\ndef\ng h i\n",
         );
@@ -696,23 +735,41 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             true,
             "a b c\ng h i\n",
         );
-        assert_cut_fields_with_char("a b c\ndef\ng h i", "2", b'\n', ' ', false, "b\ndef\nh\n");
-        assert_cut_fields_with_char("a b c\ndef\ng h i", "2", b'\n', ' ', true, "b\nh\n");
+        assert_cut_fields_with_char(
+            "a b c\ndef\ng h i",
+            "2",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "b\ndef\nh\n",
+        );
+        assert_cut_fields_with_char("a b c\ndef\ng h i", "2", b'\n', ' ', " ", true, "b\nh\n");
 
         assert_cut_fields_with_char(
             "abc\nd e f\nghi",
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "abc\nd e f\nghi\n",
         );
-        assert_cut_fields_with_char("abc\nd e f\nghi", "1-", b'\n', ' ', true, "d e f\n");
-        assert_cut_fields_with_char("abc\nd e f\nghi", "3", b'\n', ' ', false, "abc\nf\nghi\n");
-        assert_cut_fields_with_char("abc\nd e f\nghi", "3", b'\n', ' ', true, "f\n");
+        assert_cut_fields_with_char("abc\nd e f\nghi", "1-", b'\n', ' ', " ", true, "d e f\n");
+        assert_cut_fields_with_char(
+            "abc\nd e f\nghi",
+            "3",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "abc\nf\nghi\n",
+        );
+        assert_cut_fields_with_char("abc\nd e f\nghi", "3", b'\n', ' ', " ", true, "f\n");
 
         // Suppress blank lines.
         assert_cut_fields_with_char(
@@ -720,72 +777,106 @@ mod tests {
             "1-",
             b'\n',
             ' ',
+            " ",
             false,
             "a b c\n\nd e f\n",
         );
-        assert_cut_fields_with_char("a b c\n\nd e f", "1-", b'\n', ' ', true, "a b c\nd e f\n");
-        assert_cut_fields_with_char("a b c\n\nd e f", "2", b'\n', ' ', false, "b\n\ne\n");
-        assert_cut_fields_with_char("a b c\n\nd e f", "2", b'\n', ' ', true, "b\ne\n");
+        assert_cut_fields_with_char(
+            "a b c\n\nd e f",
+            "1-",
+            b'\n',
+            ' ',
+            " ",
+            true,
+            "a b c\nd e f\n",
+        );
+        assert_cut_fields_with_char("a b c\n\nd e f", "2", b'\n', ' ', " ", false, "b\n\ne\n");
+        assert_cut_fields_with_char("a b c\n\nd e f", "2", b'\n', ' ', " ", true, "b\ne\n");
     }
 
     #[test]
     fn test_cut_fields_with_char_delimiter() {
         // Single byte delimiter.
-        assert_cut_fields_with_char("a b c d e", "1-", b'\n', ' ', false, "a b c d e\n");
-        assert_cut_fields_with_char("a b c d e", "2,4", b'\n', ' ', false, "b d\n");
-        assert_cut_fields_with_char("a:b:c:d:e", "1-", b'\n', ':', false, "a:b:c:d:e\n");
-        assert_cut_fields_with_char("a:b:c:d:e", "2,4", b'\n', ':', false, "b:d\n");
-        assert_cut_fields_with_char("a_b_c_d_e", "1-", b'\n', '_', false, "a_b_c_d_e\n");
-        assert_cut_fields_with_char("a_b_c_d_e", "2,4", b'\n', '_', false, "b_d\n");
+        assert_cut_fields_with_char("a b c d e", "1-", b'\n', ' ', "_", false, "a_b_c_d_e\n");
+        assert_cut_fields_with_char("a b c d e", "2,4", b'\n', ' ', "-", false, "b-d\n");
+        assert_cut_fields_with_char("a:b:c:d:e", "1-", b'\n', ':', "#", false, "a#b#c#d#e\n");
+        assert_cut_fields_with_char("a:b:c:d:e", "2,4", b'\n', ':', "!", false, "b!d\n");
+        assert_cut_fields_with_char("a_b_c_d_e", "1-", b'\n', '_', "&", false, "a&b&c&d&e\n");
+        assert_cut_fields_with_char("a_b_c_d_e", "2,4", b'\n', '_', "*", false, "b*d\n");
 
         // Multi-byte delimiter.
-        assert_cut_fields_with_char("a→b→c→d→e", "1-", b'\n', '→', false, "a→b→c→d→e\n");
-        assert_cut_fields_with_char("a→b→c→d→e", "2,4", b'\n', '→', false, "b→d\n");
-        assert_cut_fields_with_char("a⭐b⭐c⭐d⭐e", "1-", b'\n', '⭐', false, "a⭐b⭐c⭐d⭐e\n");
-        assert_cut_fields_with_char("a⭐b⭐c⭐d⭐e", "2,4", b'\n', '⭐', false, "b⭐d\n");
+        assert_cut_fields_with_char("a→b→c→d→e", "1-", b'\n', '→', "←", false, "a←b←c←d←e\n");
+        assert_cut_fields_with_char("a→b→c→d→e", "2,4", b'\n', '→', "-->", false, "b-->d\n");
+        assert_cut_fields_with_char(
+            "a⭐b⭐c⭐d⭐e",
+            "1-",
+            b'\n',
+            '⭐',
+            "*",
+            false,
+            "a*b*c*d*e\n",
+        );
+        assert_cut_fields_with_char("a⭐b⭐c⭐d⭐e", "2,4", b'\n', '⭐', "🌟", false, "b🌟d\n");
     }
 
     #[test]
     fn test_cut_fields_with_char_trailing_newline() {
-        assert_cut_fields_with_char("", "1-", b'\n', ' ', false, "");
-        assert_cut_fields_with_char("\n", "1-", b'\n', ' ', false, "\n");
+        assert_cut_fields_with_char("", "1-", b'\n', ' ', " ", false, "");
+        assert_cut_fields_with_char("\n", "1-", b'\n', ' ', " ", false, "\n");
 
-        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', false, "a b c\n");
-        assert_cut_fields_with_char("a b c\n", "1-", b'\n', ' ', false, "a b c\n");
-        assert_cut_fields_with_char("a b c", "1,3", b'\n', ' ', false, "a c\n");
-        assert_cut_fields_with_char("a b c\n", "2", b'\n', ' ', false, "b\n");
+        assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', " ", false, "a b c\n");
+        assert_cut_fields_with_char("a b c\n", "1-", b'\n', ' ', " ", false, "a b c\n");
+        assert_cut_fields_with_char("a b c", "1,3", b'\n', ' ', " ", false, "a c\n");
+        assert_cut_fields_with_char("a b c\n", "2", b'\n', ' ', " ", false, "b\n");
 
-        assert_cut_fields_with_char("a b c\nd e f", "1-", b'\n', ' ', false, "a b c\nd e f\n");
-        assert_cut_fields_with_char("a b c\nd e f\n", "1-", b'\n', ' ', false, "a b c\nd e f\n");
-        assert_cut_fields_with_char("a b c\nd e f", "1,3", b'\n', ' ', false, "a c\nd f\n");
-        assert_cut_fields_with_char("a b c\nd e f\n", "2", b'\n', ' ', false, "b\ne\n");
+        assert_cut_fields_with_char(
+            "a b c\nd e f",
+            "1-",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "a b c\nd e f\n",
+        );
+        assert_cut_fields_with_char(
+            "a b c\nd e f\n",
+            "1-",
+            b'\n',
+            ' ',
+            " ",
+            false,
+            "a b c\nd e f\n",
+        );
+        assert_cut_fields_with_char("a b c\nd e f", "1,3", b'\n', ' ', " ", false, "a c\nd f\n");
+        assert_cut_fields_with_char("a b c\nd e f\n", "2", b'\n', ' ', " ", false, "b\ne\n");
     }
 
     #[test]
     fn test_cut_fields_with_char_line_delimiter() {
-        assert_cut_fields_with_char("abcdeabcde", "1-", b'a', 'c', false, "abcdeabcdea");
-        assert_cut_fields_with_char("abcdeabcde", "1-", b'b', 'd', false, "abcdeabcdeb");
-        assert_cut_fields_with_char("abcdeabcde", "1-", b'c', 'e', false, "abcdeabcdec");
-        assert_cut_fields_with_char("abcdeabcde", "1-", b'd', 'a', false, "abcdeabcded");
-        assert_cut_fields_with_char("abcdeabcde", "1-", b'e', 'b', false, "abcdeabcde");
+        assert_cut_fields_with_char("abcdeabcde", "1-", b'a', 'c', " ", false, "ab deab dea");
+        assert_cut_fields_with_char("abcdeabcde", "1-", b'b', 'd', " ", false, "abc eabc eb");
+        assert_cut_fields_with_char("abcdeabcde", "1-", b'c', 'e', " ", false, "abcd abcd c");
+        assert_cut_fields_with_char("abcdeabcde", "1-", b'd', 'a', " ", false, " bcde bcded");
+        assert_cut_fields_with_char("abcdeabcde", "1-", b'e', 'b', " ", false, "a cdea cde");
 
-        assert_cut_fields_with_char("abcdeabcde", "2", b'a', 'c', false, "adeadea");
-        assert_cut_fields_with_char("abcdeabcde", "2", b'b', 'd', false, "abeabeb");
-        assert_cut_fields_with_char("abcdeabcde", "2", b'c', 'e', false, "abcabcc");
-        assert_cut_fields_with_char("abcdeabcde", "2", b'd', 'a', false, "bcdbcded");
-        assert_cut_fields_with_char("abcdeabcde", "2", b'e', 'b', false, "cdecde");
+        assert_cut_fields_with_char("abcdeabcde", "2", b'a', 'c', " ", false, "adeadea");
+        assert_cut_fields_with_char("abcdeabcde", "2", b'b', 'd', " ", false, "abeabeb");
+        assert_cut_fields_with_char("abcdeabcde", "2", b'c', 'e', " ", false, "abcabcc");
+        assert_cut_fields_with_char("abcdeabcde", "2", b'd', 'a', " ", false, "bcdbcded");
+        assert_cut_fields_with_char("abcdeabcde", "2", b'e', 'b', " ", false, "cdecde");
 
         // Null byte line delimiter.
-        assert_cut_fields_with_char("a b c\0d e f", "1-", 0, ' ', false, "a b c\0d e f\0");
-        assert_cut_fields_with_char("a b c\0d e f", "2", 0, ' ', false, "b\0e\0");
-        assert_cut_fields_with_char("a b c\0d e f", "1,3", 0, ' ', false, "a c\0d f\0");
+        assert_cut_fields_with_char("a b c\0d e f", "1-", 0, ' ', " ", false, "a b c\0d e f\0");
+        assert_cut_fields_with_char("a b c\0d e f", "2", 0, ' ', " ", false, "b\0e\0");
+        assert_cut_fields_with_char("a b c\0d e f", "1,3", 0, ' ', " ", false, "a c\0d f\0");
     }
 
     fn assert_cut_fields_with_char(
         input: &str,
         ranges: &str,
         line_delimiter: u8,
-        delimiter: char,
+        field_delimiter: char,
+        output_delimiter: &str,
         suppress: bool,
         expected: &str,
     ) {
@@ -795,7 +886,8 @@ mod tests {
             &mut input.as_bytes(),
             &mut output,
             line_delimiter,
-            delimiter,
+            field_delimiter,
+            output_delimiter,
             suppress,
             &ranges,
         )
@@ -1206,7 +1298,6 @@ mod tests {
 
     #[test]
     fn test_cut_fields_with_regex_line_delimiter() {
-        // todo!();
         assert_cut_fields_with_regex(
             "a1b2c3a1b2c3",
             "1-",
@@ -1248,8 +1339,8 @@ mod tests {
         input: &str,
         ranges: &str,
         line_delimiter: u8,
-        delimiter: &str,
-        joiner: &str,
+        field_delimiter: &str,
+        output_delimiter: &str,
         suppress: bool,
         expected: &str,
     ) {
@@ -1259,8 +1350,8 @@ mod tests {
             &mut input.as_bytes(),
             &mut output,
             line_delimiter,
-            &Regex::new(delimiter).unwrap(),
-            &joiner.to_string(),
+            &Regex::new(field_delimiter).unwrap(),
+            &output_delimiter.to_string(),
             suppress,
             &ranges,
         )
