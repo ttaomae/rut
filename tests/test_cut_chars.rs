@@ -8,11 +8,13 @@ fn all_ascii_chars() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklmnopqrstuvwxyz
+        .stdout(
+            "abcdefghijklmnopqrstuvwxyz
 a b c d e f g h i j k l m
 a_b_c_d_e_f_g_h_i_j_k_l_m
 a:b:c:d:e:f:g:h:i:j:k:l:m
-");
+",
+        );
 }
 
 #[test]
@@ -23,11 +25,13 @@ fn all_utf8_chars() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklm
+        .stdout(
+            "abcdefghijklm
 αβγδεζηθικλμν
 abαβcdγδefεζ
 😀😁😂😃😄😅😆😇😈
-");
+",
+        );
 }
 
 #[test]
@@ -38,11 +42,13 @@ fn some_ascii_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout("bdhpqrstu
+        .stdout(
+            "bdhpqrstu
     i j k
 ____i_j_k
 ::::i:j:k
-");
+",
+        );
 }
 
 #[test]
@@ -53,11 +59,13 @@ fn some_utf8_chars() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcd
+        .stdout(
+            "abcd
 αβγδ
 abαβ
 😀😁😂😃
-");
+",
+        );
 }
 
 #[test]
@@ -115,7 +123,8 @@ fn multiple_files() {
         .build()
         .assert()
         .code(0)
-        .stdout("ejoty
+        .stdout(
+            "ejoty
 c h m
 c_h_m
 c:h:m
@@ -123,7 +132,8 @@ ej
 εκ
 cf
 😄
-");
+",
+        );
 }
 
 #[test]
@@ -133,19 +143,23 @@ fn file_and_stdin() {
         .file("tests/files/utf8.txt")
         .file("-")
         .build()
-        .write_stdin("abcdefgh
+        .write_stdin(
+            "abcdefgh
 ijklmnop
-qrstuvwx")
+qrstuvwx",
+        )
         .assert()
         .code(0)
-        .stdout("hijklm
+        .stdout(
+            "hijklm
 θικλμν
 δefεζ
 😇😈
 h
 p
 x
-");
+",
+        );
 }
 
 #[test]
@@ -157,11 +171,13 @@ fn missing_file() {
         .build()
         .assert()
         .code(1)
-        .stdout("ace
+        .stdout(
+            "ace
 αγε
 aαc
 😀😂😄
-");
+",
+        );
 }
 
 #[test]

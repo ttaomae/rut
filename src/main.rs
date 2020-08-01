@@ -16,9 +16,7 @@ fn main() {
                 print_error_and_exit("", matches.usage(), 1)
             }
         }
-        Result::Err(err) => {
-            print_error_and_exit(&err, matches.usage(), 1)
-        }
+        Result::Err(err) => print_error_and_exit(&err, matches.usage(), 1),
     }
 }
 
@@ -28,7 +26,6 @@ fn print_error_and_exit(error: &str, usage: &str, code: i32) {
     }
     eprintln!("{}", usage);
     std::process::exit(code);
-
 }
 
 fn cut(args: Args) -> Result<(), ()> {

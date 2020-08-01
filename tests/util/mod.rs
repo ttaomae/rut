@@ -5,7 +5,7 @@ pub fn test_command() -> TestCommandBuilder {
     }
 }
 
-pub struct TestCommandBuilder  {
+pub struct TestCommandBuilder {
     options: Vec<String>,
     files: Vec<String>,
 }
@@ -17,7 +17,8 @@ impl TestCommandBuilder {
     }
 
     pub fn options(mut self, options: &[&str]) -> TestCommandBuilder {
-        self.options.extend(options.into_iter().map(|s| s.to_string()));
+        self.options
+            .extend(options.into_iter().map(|s| s.to_string()));
         self
     }
 

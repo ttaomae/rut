@@ -202,7 +202,7 @@ mod tests {
     use crate::range::{MergedRange, Ranges};
 
     #[test]
-    fn test_parse_single_range() {
+    fn parse_single_range() {
         assert_parse_ranges("1", &[MergedRange::Closed(0, 0)]);
         assert_parse_ranges("15", &[MergedRange::Closed(14, 14)]);
 
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_comma_separator() {
+    fn parse_comma_separator() {
         use MergedRange::{Closed, ToEnd};
 
         assert_parse_ranges("1,2,3", &[Closed(0, 2)]);
@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_blank_separator() {
+    fn parse_blank_separator() {
         use MergedRange::{Closed, ToEnd};
 
         assert_parse_ranges("1 2 3", &[Closed(0, 2)]);
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_mixed_separator() {
+    fn parse_mixed_separator() {
         use MergedRange::{Closed, ToEnd};
 
         assert_parse_ranges("5,10-44 6-9\t-4", &[Closed(0, 43)]);
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_error() {
+    fn parse_error() {
         // Empty string.
         assert!("".parse::<Ranges>().is_err());
 

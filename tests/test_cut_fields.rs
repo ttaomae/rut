@@ -9,11 +9,13 @@ fn ascii_char_delimiter() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklmnopqrstuvwxyz
+        .stdout(
+            "abcdefghijklmnopqrstuvwxyz
 c f i
 a_b_c_d_e_f_g_h_i_j_k_l_m
 a:b:c:d:e:f:g:h:i:j:k:l:m
-");
+",
+        );
 
     util::test_command()
         .option("-f3,6,9")
@@ -22,11 +24,13 @@ a:b:c:d:e:f:g:h:i:j:k:l:m
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklmnopqrstuvwxyz
+        .stdout(
+            "abcdefghijklmnopqrstuvwxyz
 a b c d e f g h i j k l m
 c_f_i
 a:b:c:d:e:f:g:h:i:j:k:l:m
-");
+",
+        );
 
     util::test_command()
         .option("-f3,6,9")
@@ -35,11 +39,13 @@ a:b:c:d:e:f:g:h:i:j:k:l:m
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklmnopqrstuvwxyz
+        .stdout(
+            "abcdefghijklmnopqrstuvwxyz
 a b c d e f g h i j k l m
 a_b_c_d_e_f_g_h_i_j_k_l_m
 c:f:i
-");
+",
+        );
 }
 
 #[test]
@@ -51,11 +57,13 @@ fn utf8_char_delimiter() {
         .build()
         .assert()
         .code(0)
-        .stdout("hijklm
+        .stdout(
+            "hijklm
 αβγδεζηθικλμν
 abαβcdγδefεζ
 😀😁😂😃😄😅😆😇😈
-");
+",
+        );
 
     util::test_command()
         .option("-f2")
@@ -64,11 +72,13 @@ abαβcdγδefεζ
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklm
+        .stdout(
+            "abcdefghijklm
 ηθικλμν
 
 😀😁😂😃😄😅😆😇😈
-");
+",
+        );
 
     util::test_command()
         .option("-f2")
@@ -77,11 +87,13 @@ abαβcdγδefεζ
         .build()
         .assert()
         .code(0)
-        .stdout("efghijklm
+        .stdout(
+            "efghijklm
 αβγδεζηθικλμν
 γδefεζ
 😀😁😂😃😄😅😆😇😈
-");
+",
+        );
 
     util::test_command()
         .option("-f2")
@@ -90,11 +102,13 @@ abαβcdγδefεζ
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklm
+        .stdout(
+            "abcdefghijklm
 αβγδεζηθικλμν
 abαβcdγδefεζ
 😅😆😇😈
-");
+",
+        );
 }
 
 #[test]
@@ -106,11 +120,13 @@ fn ascii_regex_delimiter() {
         .build()
         .assert()
         .code(0)
-        .stdout("bcd\tjklmn
+        .stdout(
+            "bcd\tjklmn
  b c d \t j k l m
 _b_c_d_\t_j_k_l_m
 :b:c:d:\t:j:k:l:m
-");
+",
+        );
 }
 
 #[test]
@@ -122,11 +138,13 @@ fn utf8_regex_delimiter() {
         .build()
         .assert()
         .code(0)
-        .stdout("efghijklm
+        .stdout(
+            "efghijklm
 εζηθικλμν
 γ
 😅😆😇😈
-");
+",
+        );
 }
 
 #[test]
@@ -155,7 +173,6 @@ fn zero_terminated_utf8() {
         .assert()
         .code(0)
         .stdout("α\0abα\0");
-
 }
 
 #[test]
@@ -228,11 +245,13 @@ fn file_and_stdin() {
         .write_stdin("z y x w v\tz_y_x_w_v\nz:y:x:w:v")
         .assert()
         .code(0)
-        .stdout("b\td
+        .stdout(
+            "b\td
 b\td
 y\tw
 y\tw
-");
+",
+        );
 }
 
 #[test]
@@ -246,12 +265,14 @@ fn multiple_files() {
         .build()
         .assert()
         .code(0)
-        .stdout("bcd\tfgh
+        .stdout(
+            "bcd\tfgh
  b c d \t f g h \n_b_c_d_\t_f_g_h_
 :b:c:d:\t:f:g:h:
 bcd\tfgh
 bαβcdγδ\tfεζ
-");
+",
+        );
 }
 
 #[test]

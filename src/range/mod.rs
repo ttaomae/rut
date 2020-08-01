@@ -169,13 +169,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from_no_ranges() {
+    fn from_no_ranges() {
         let ranges = Ranges::from_ranges(&[]);
         assert_eq!(ranges.elements().next(), Option::None);
     }
 
     #[test]
-    fn test_from_single_range() {
+    fn from_single_range() {
         use CutRange::{FromStart, ToEnd, Unit};
 
         assert_simplify_to_single_range(&[Unit(0)], MergedRange::Closed(0, 0));
@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simplify_sorted_to_single_range() {
+    fn simplify_sorted_to_single_range() {
         use CutRange::{FromStart, ToEnd, Unit};
 
         // Units only.
@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simplify_unsorted_to_single_range() {
+    fn simplify_unsorted_to_single_range() {
         use CutRange::{FromStart, ToEnd, Unit};
 
         // Single type.
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simplify_sorted_to_multiple_ranges() {
+    fn simplify_sorted_to_multiple_ranges() {
         use CutRange::{FromStart, ToEnd, Unit};
 
         // Single type.
@@ -380,7 +380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simplify_unsorted_to_multiple_ranges() {
+    fn simplify_unsorted_to_multiple_ranges() {
         use CutRange::{FromStart, ToEnd, Unit};
 
         // Single Type.

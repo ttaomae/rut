@@ -260,27 +260,27 @@ mod tests {
     use regex::Regex;
 
     #[test]
-    fn test_cut_bytes() {
+    fn cut_bytes() {
         // One line.
         let input = &[1, 2, 3, 4, 5, 6, 7, 8];
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "1-",
-            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n'],
+            &[1, 2, 3, 4, 5, 6, 7, 8, b'\n'],
         );
-        assert_cut_bytes(&mut input.clone(), b'\n', "2-5", vec![2, 3, 4, 5, b'\n']);
+        assert_cut_bytes(&mut input.clone(), b'\n', "2-5", &[2, 3, 4, 5, b'\n']);
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "-3,6-",
-            vec![1, 2, 3, 6, 7, 8, b'\n'],
+            &[1, 2, 3, 6, 7, 8, b'\n'],
         );
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "1,2,4,8,16-",
-            vec![1, 2, 4, 8, b'\n'],
+            &[1, 2, 4, 8, b'\n'],
         );
 
         // Multiple lines.
@@ -291,7 +291,7 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "1-",
-            vec![
+            &[
                 1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, 17, 18, b'\n',
             ],
         );
@@ -299,26 +299,26 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "2-4,7-",
-            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, 17, 18, b'\n'],
+            &[2, 3, 4, 7, 8, b'\n', 12, 13, 14, 17, 18, b'\n'],
         );
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "4-8",
-            vec![4, 5, 6, 7, 8, b'\n', 14, 15, 16, 17, 18, b'\n'],
+            &[4, 5, 6, 7, 8, b'\n', 14, 15, 16, 17, 18, b'\n'],
         );
 
         assert_cut_bytes(
             &[1, 2, b'\n', 3, 4, b'\n'],
             b'\n',
             "1-",
-            vec![1, 2, b'\n', 3, 4, b'\n'],
+            &[1, 2, b'\n', 3, 4, b'\n'],
         );
         assert_cut_bytes(
             &[1, 2, b'\n', b'\n', 3, 4, b'\n'],
             b'\n',
             "1-",
-            vec![1, 2, b'\n', b'\n', 3, 4, b'\n'],
+            &[1, 2, b'\n', b'\n', 3, 4, b'\n'],
         );
 
         // Different sized lines.
@@ -327,19 +327,19 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "1-",
-            vec![1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, b'\n'],
+            &[1, 2, 3, 4, 5, 6, 7, 8, b'\n', 11, 12, 13, 14, 15, 16, b'\n'],
         );
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "5-",
-            vec![5, 6, 7, 8, b'\n', 15, 16, b'\n'],
+            &[5, 6, 7, 8, b'\n', 15, 16, b'\n'],
         );
         assert_cut_bytes(
             &mut input.clone(),
             b'\n',
             "2-4,7-9",
-            vec![2, 3, 4, 7, 8, b'\n', 12, 13, 14, b'\n'],
+            &[2, 3, 4, 7, 8, b'\n', 12, 13, 14, b'\n'],
         );
 
         // Many different sized lines.
@@ -350,7 +350,7 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "1-",
-            vec![
+            &[
                 1, b'\n', 11, 12, b'\n', 21, 22, 23, b'\n', 31, 32, 33, 34, b'\n', 41, 42, 43, 44,
                 45, b'\n',
             ],
@@ -359,7 +359,7 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "3,5-",
-            vec![b'\n', b'\n', 23, b'\n', 33, b'\n', 43, 45, b'\n'],
+            &[b'\n', b'\n', 23, b'\n', 33, b'\n', 43, 45, b'\n'],
         );
 
         // Non-UTF-8.
@@ -368,64 +368,64 @@ mod tests {
             &mut input.clone(),
             b'\n',
             "1-",
-            vec![255, 254, 253, b'\n', 252, 251, 250, b'\n'],
+            &[255, 254, 253, b'\n', 252, 251, 250, b'\n'],
         );
-        assert_cut_bytes(&mut input.clone(), b'\n', "2", vec![254, b'\n', 251, b'\n']);
+        assert_cut_bytes(&mut input.clone(), b'\n', "2", &[254, b'\n', 251, b'\n']);
     }
 
     #[test]
-    fn test_cut_bytes_trailing_newline() {
-        assert_cut_bytes(&[], b'\n', "1-", vec![]);
-        assert_cut_bytes(&[b'\n'], b'\n', "1-", vec![b'\n']);
+    fn cut_bytes_trailing_newline() {
+        assert_cut_bytes(&[], b'\n', "1-", &[]);
+        assert_cut_bytes(&[b'\n'], b'\n', "1-", &[b'\n']);
 
-        assert_cut_bytes(&[1, 2, 3, 4], b'\n', "1-", vec![1, 2, 3, 4, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], b'\n', "1-", vec![1, 2, 3, 4, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4], b'\n', "1,3", vec![1, 3, b'\n']);
-        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], b'\n', "2,4", vec![2, 4, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4], b'\n', "1-", &[1, 2, 3, 4, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], b'\n', "1-", &[1, 2, 3, 4, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4], b'\n', "1,3", &[1, 3, b'\n']);
+        assert_cut_bytes(&[1, 2, 3, 4, b'\n'], b'\n', "2,4", &[2, 4, b'\n']);
 
         assert_cut_bytes(
             &[1, 2, 3, 4, b'\n', 5, 6, 7, 8],
             b'\n',
             "1-",
-            vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
         );
         assert_cut_bytes(
             &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
             b'\n',
             "1-",
-            vec![1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
+            &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
         );
         assert_cut_bytes(
             &[1, 2, 3, 4, b'\n', 5, 6, 7, 8],
             b'\n',
             "1,3",
-            vec![1, 3, b'\n', 5, 7, b'\n'],
+            &[1, 3, b'\n', 5, 7, b'\n'],
         );
         assert_cut_bytes(
             &[1, 2, 3, 4, b'\n', 5, 6, 7, 8, b'\n'],
             b'\n',
             "2,4",
-            vec![2, 4, b'\n', 6, 8, b'\n'],
+            &[2, 4, b'\n', 6, 8, b'\n'],
         );
     }
 
     #[test]
-    fn test_cut_bytes_line_delimiter() {
+    fn cut_bytes_line_delimiter() {
         let input = &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5];
-        assert_cut_bytes(input, 1, "1-", vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1]);
-        assert_cut_bytes(input, 2, "1-", vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 2]);
-        assert_cut_bytes(input, 3, "1-", vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 3]);
-        assert_cut_bytes(input, 4, "1-", vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 4]);
-        assert_cut_bytes(input, 5, "1-", vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
+        assert_cut_bytes(input, 1, "1-", &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1]);
+        assert_cut_bytes(input, 2, "1-", &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 2]);
+        assert_cut_bytes(input, 3, "1-", &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 3]);
+        assert_cut_bytes(input, 4, "1-", &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 4]);
+        assert_cut_bytes(input, 5, "1-", &[1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
 
-        assert_cut_bytes(input, 1, "2,4", vec![1, 3, 5, 1, 3, 5, 1]);
-        assert_cut_bytes(input, 2, "2,4", vec![2, 4, 1, 2, 4, 2]);
-        assert_cut_bytes(input, 3, "2,4", vec![2, 3, 5, 2, 3, 5, 3]);
-        assert_cut_bytes(input, 4, "2,4", vec![2, 4, 1, 3, 4, 4]);
-        assert_cut_bytes(input, 5, "2,4", vec![2, 4, 5, 2, 4, 5]);
+        assert_cut_bytes(input, 1, "2,4", &[1, 3, 5, 1, 3, 5, 1]);
+        assert_cut_bytes(input, 2, "2,4", &[2, 4, 1, 2, 4, 2]);
+        assert_cut_bytes(input, 3, "2,4", &[2, 3, 5, 2, 3, 5, 3]);
+        assert_cut_bytes(input, 4, "2,4", &[2, 4, 1, 3, 4, 4]);
+        assert_cut_bytes(input, 5, "2,4", &[2, 4, 5, 2, 4, 5]);
     }
 
-    fn assert_cut_bytes(mut input: &[u8], line_delimiter: u8, ranges: &str, expected: Vec<u8>) {
+    fn assert_cut_bytes(mut input: &[u8], line_delimiter: u8, ranges: &str, expected: &[u8]) {
         let mut output = Vec::new();
         let ranges: Ranges = ranges.parse().unwrap();
         super::cut_bytes(&mut input, &mut output, line_delimiter, &ranges).unwrap();
@@ -433,7 +433,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_characters() {
+    fn cut_characters() {
         // One line.
         assert_cut_chars("abcdefghi", b'\n', "1-", "abcdefghi\n");
         assert_cut_chars("abcdefghi", b'\n', "1,3,5", "ace\n");
@@ -503,7 +503,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_characters_trailing_newline() {
+    fn cut_characters_trailing_newline() {
         assert_cut_chars("", b'\n', "1-", "");
         assert_cut_chars("\n", b'\n', "1-", "\n");
 
@@ -519,7 +519,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_characters_line_delimiter() {
+    fn cut_characters_line_delimiter() {
         assert_cut_chars("abcdeabcde", b'a', "1-", "abcdeabcdea");
         assert_cut_chars("abcdeabcde", b'b', "1-", "abcdeabcdeb");
         assert_cut_chars("abcdeabcde", b'c', "1-", "abcdeabcdec");
@@ -547,7 +547,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_char() {
+    fn cut_fields_with_char() {
         // Empty.
         assert_cut_fields_with_char("", "1-", b'\n', ' ', " ", false, "");
         assert_cut_fields_with_char("\n", "1-", b'\n', ' ', " ", false, "\n");
@@ -677,7 +677,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_char_suppress() {
+    fn cut_fields_with_char_suppress() {
         // Single line. No suppress.
         assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', " ", false, "a b c\n");
         assert_cut_fields_with_char("a b c", "1-", b'\n', ' ', " ", true, "a b c\n");
@@ -795,7 +795,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_char_delimiter() {
+    fn cut_fields_with_char_delimiter() {
         // Single byte delimiter.
         assert_cut_fields_with_char("a b c d e", "1-", b'\n', ' ', "_", false, "a_b_c_d_e\n");
         assert_cut_fields_with_char("a b c d e", "2,4", b'\n', ' ', "-", false, "b-d\n");
@@ -820,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_char_trailing_newline() {
+    fn cut_fields_with_char_trailing_newline() {
         assert_cut_fields_with_char("", "1-", b'\n', ' ', " ", false, "");
         assert_cut_fields_with_char("\n", "1-", b'\n', ' ', " ", false, "\n");
 
@@ -852,7 +852,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_char_line_delimiter() {
+    fn cut_fields_with_char_line_delimiter() {
         assert_cut_fields_with_char("abcdeabcde", "1-", b'a', 'c', " ", false, "ab deab dea");
         assert_cut_fields_with_char("abcdeabcde", "1-", b'b', 'd', " ", false, "abc eabc eb");
         assert_cut_fields_with_char("abcdeabcde", "1-", b'c', 'e', " ", false, "abcd abcd c");
@@ -897,7 +897,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_regex() {
+    fn cut_fields_with_regex() {
         // Empty.
         assert_cut_fields_with_regex("", "1-", b'\n', r"\s+", "\t", false, "");
         assert_cut_fields_with_regex("\n", "1-", b'\n', r"\s+", "\t", false, "\n");
@@ -1039,7 +1039,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_regex_suppress() {
+    fn cut_fields_with_regex_suppress() {
         // Single line. No suppress.
         assert_cut_fields_with_regex("a b\tc", "1-", b'\n', r"\s+", "\t", false, "a\tb\tc\n");
         assert_cut_fields_with_regex("a b\tc", "1-", b'\n', r"\s+", "\t", true, "a\tb\tc\n");
@@ -1168,7 +1168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_regex_delimiter() {
+    fn cut_fields_with_regex_delimiter() {
         // Single character delimiter
         assert_cut_fields_with_regex(
             "abc.def.ghi",
@@ -1265,7 +1265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_regex_trailing_newline() {
+    fn cut_fields_with_regex_trailing_newline() {
         assert_cut_fields_with_regex("", "1-", b'\n', r"\s+", "\t", false, "");
         assert_cut_fields_with_regex("\n", "1-", b'\n', r"\s+", "\t", false, "\n");
 
@@ -1297,7 +1297,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cut_fields_with_regex_line_delimiter() {
+    fn cut_fields_with_regex_line_delimiter() {
         assert_cut_fields_with_regex(
             "a1b2c3a1b2c3",
             "1-",

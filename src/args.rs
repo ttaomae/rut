@@ -236,137 +236,137 @@ fn validate_regex_delimiter(value: &str) -> Result<Regex, String> {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_valid_args() {
-        assert_valid_args(vec!["rut", "-b1"]);
-        assert_valid_args(vec!["rut", "-b=1"]);
-        assert_valid_args(vec!["rut", "-b", "1"]);
-        assert_valid_args(vec!["rut", "--bytes=1"]);
-        assert_valid_args(vec!["rut", "--bytes", "1"]);
+    fn valid_args() {
+        assert_valid_args(&["rut", "-b1"]);
+        assert_valid_args(&["rut", "-b=1"]);
+        assert_valid_args(&["rut", "-b", "1"]);
+        assert_valid_args(&["rut", "--bytes=1"]);
+        assert_valid_args(&["rut", "--bytes", "1"]);
 
-        assert_valid_args(vec!["rut", "-c1"]);
-        assert_valid_args(vec!["rut", "-c=1"]);
-        assert_valid_args(vec!["rut", "-c", "1"]);
-        assert_valid_args(vec!["rut", "--characters=1"]);
-        assert_valid_args(vec!["rut", "--characters", "1"]);
+        assert_valid_args(&["rut", "-c1"]);
+        assert_valid_args(&["rut", "-c=1"]);
+        assert_valid_args(&["rut", "-c", "1"]);
+        assert_valid_args(&["rut", "--characters=1"]);
+        assert_valid_args(&["rut", "--characters", "1"]);
 
-        assert_valid_args(vec!["rut", "-f1"]);
-        assert_valid_args(vec!["rut", "-f=1"]);
-        assert_valid_args(vec!["rut", "-f", "1"]);
-        assert_valid_args(vec!["rut", "--fields=1"]);
-        assert_valid_args(vec!["rut", "--fields", "1"]);
+        assert_valid_args(&["rut", "-f1"]);
+        assert_valid_args(&["rut", "-f=1"]);
+        assert_valid_args(&["rut", "-f", "1"]);
+        assert_valid_args(&["rut", "--fields=1"]);
+        assert_valid_args(&["rut", "--fields", "1"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-d,"]);
-        assert_valid_args(vec!["rut", "-f1", "-d=,"]);
-        assert_valid_args(vec!["rut", "-f1", "-d", ","]);
-        assert_valid_args(vec!["rut", "-f1", "--delimiter=,"]);
-        assert_valid_args(vec!["rut", "-f1", "--delimiter", ","]);
+        assert_valid_args(&["rut", "-f1", "-d,"]);
+        assert_valid_args(&["rut", "-f1", "-d=,"]);
+        assert_valid_args(&["rut", "-f1", "-d", ","]);
+        assert_valid_args(&["rut", "-f1", "--delimiter=,"]);
+        assert_valid_args(&["rut", "-f1", "--delimiter", ","]);
 
-        assert_valid_args(vec!["rut", "-f1", "-r[a-z]"]);
-        assert_valid_args(vec!["rut", "-f1", "-r=[a-z],"]);
-        assert_valid_args(vec!["rut", "-f1", "-r", "[a-z]"]);
-        assert_valid_args(vec!["rut", "-f1", "--regex-delimiter=[a-z]"]);
-        assert_valid_args(vec!["rut", "-f1", "--regex-delimiter", "[a-z]"]);
+        assert_valid_args(&["rut", "-f1", "-r[a-z]"]);
+        assert_valid_args(&["rut", "-f1", "-r=[a-z],"]);
+        assert_valid_args(&["rut", "-f1", "-r", "[a-z]"]);
+        assert_valid_args(&["rut", "-f1", "--regex-delimiter=[a-z]"]);
+        assert_valid_args(&["rut", "-f1", "--regex-delimiter", "[a-z]"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-o#"]);
-        assert_valid_args(vec!["rut", "-f1", "-o=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-o", "#"]);
-        assert_valid_args(vec!["rut", "-f1", "--output-delimiter=#"]);
-        assert_valid_args(vec!["rut", "-f1", "--output-delimiter", "#"]);
+        assert_valid_args(&["rut", "-f1", "-o#"]);
+        assert_valid_args(&["rut", "-f1", "-o=#"]);
+        assert_valid_args(&["rut", "-f1", "-o", "#"]);
+        assert_valid_args(&["rut", "-f1", "--output-delimiter=#"]);
+        assert_valid_args(&["rut", "-f1", "--output-delimiter", "#"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-d_", "-o#"]);
-        assert_valid_args(vec!["rut", "-f1", "-d_", "-o=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-d_", "-o", "#"]);
-        assert_valid_args(vec!["rut", "-f1", "-d_", "--output-delimiter=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-d_", "--output-delimiter", "#"]);
+        assert_valid_args(&["rut", "-f1", "-d_", "-o#"]);
+        assert_valid_args(&["rut", "-f1", "-d_", "-o=#"]);
+        assert_valid_args(&["rut", "-f1", "-d_", "-o", "#"]);
+        assert_valid_args(&["rut", "-f1", "-d_", "--output-delimiter=#"]);
+        assert_valid_args(&["rut", "-f1", "-d_", "--output-delimiter", "#"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "-o", "#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "--output-delimiter=#"]);
-        assert_valid_args(vec!["rut", "-f1", "-r_+", "--output-delimiter", "#"]);
+        assert_valid_args(&["rut", "-f1", "-r_+", "-o#"]);
+        assert_valid_args(&["rut", "-f1", "-r_+", "-o=#"]);
+        assert_valid_args(&["rut", "-f1", "-r_+", "-o", "#"]);
+        assert_valid_args(&["rut", "-f1", "-r_+", "--output-delimiter=#"]);
+        assert_valid_args(&["rut", "-f1", "-r_+", "--output-delimiter", "#"]);
 
-        assert_valid_args(vec!["rut", "-f1", "-s"]);
-        assert_valid_args(vec!["rut", "-f1", "-ss"]);
-        assert_valid_args(vec!["rut", "-f1", "-s", "-s"]);
-        assert_valid_args(vec!["rut", "-f1", "--suppress"]);
-        assert_valid_args(vec!["rut", "-f1", "-s", "--suppress"]);
+        assert_valid_args(&["rut", "-f1", "-s"]);
+        assert_valid_args(&["rut", "-f1", "-ss"]);
+        assert_valid_args(&["rut", "-f1", "-s", "-s"]);
+        assert_valid_args(&["rut", "-f1", "--suppress"]);
+        assert_valid_args(&["rut", "-f1", "-s", "--suppress"]);
 
-        assert_valid_args(vec!["rut", "-b1", "-z"]);
-        assert_valid_args(vec!["rut", "-b1", "-zz"]);
-        assert_valid_args(vec!["rut", "-b1", "-z", "-z"]);
-        assert_valid_args(vec!["rut", "-c1", "-z"]);
-        assert_valid_args(vec!["rut", "-c1", "--zero-terminated"]);
-        assert_valid_args(vec!["rut", "-c1", "-z", "--zero-terminated"]);
-        assert_valid_args(vec!["rut", "-f1", "-z"]);
-        assert_valid_args(vec!["rut", "-f1", "--zero-terminated", "-z"]);
-        assert_valid_args(vec!["rut", "-f1", "-z", "-z", "-zz"]);
+        assert_valid_args(&["rut", "-b1", "-z"]);
+        assert_valid_args(&["rut", "-b1", "-zz"]);
+        assert_valid_args(&["rut", "-b1", "-z", "-z"]);
+        assert_valid_args(&["rut", "-c1", "-z"]);
+        assert_valid_args(&["rut", "-c1", "--zero-terminated"]);
+        assert_valid_args(&["rut", "-c1", "-z", "--zero-terminated"]);
+        assert_valid_args(&["rut", "-f1", "-z"]);
+        assert_valid_args(&["rut", "-f1", "--zero-terminated", "-z"]);
+        assert_valid_args(&["rut", "-f1", "-z", "-z", "-zz"]);
     }
 
     #[test]
-    fn test_invalid_args() {
+    fn invalid_args() {
         // No arguments
-        assert_invalid_args(vec!["rut", "-b"]);
+        assert_invalid_args(&["rut", "-b"]);
 
         // Missing value
-        assert_invalid_args(vec!["rut", "-b"]);
-        assert_invalid_args(vec!["rut", "--bytes"]);
-        assert_invalid_args(vec!["rut", "-c"]);
-        assert_invalid_args(vec!["rut", "--characters"]);
-        assert_invalid_args(vec!["rut", "-f"]);
-        assert_invalid_args(vec!["rut", "--fields"]);
+        assert_invalid_args(&["rut", "-b"]);
+        assert_invalid_args(&["rut", "--bytes"]);
+        assert_invalid_args(&["rut", "-c"]);
+        assert_invalid_args(&["rut", "--characters"]);
+        assert_invalid_args(&["rut", "-f"]);
+        assert_invalid_args(&["rut", "--fields"]);
 
         // Invalid range.
-        assert_invalid_args(vec!["rut", "-b", "2-1"]);
-        assert_invalid_args(vec!["rut", "-c", "0-3"]);
-        assert_invalid_args(vec!["rut", "-f", "0--3"]);
-        assert_invalid_args(vec!["rut", "-b", "1,2,,3"]);
-        assert_invalid_args(vec!["rut", "-c", "2, 3"]);
-        assert_invalid_args(vec!["rut", "-f", "xyz"]);
+        assert_invalid_args(&["rut", "-b", "2-1"]);
+        assert_invalid_args(&["rut", "-c", "0-3"]);
+        assert_invalid_args(&["rut", "-f", "0--3"]);
+        assert_invalid_args(&["rut", "-b", "1,2,,3"]);
+        assert_invalid_args(&["rut", "-c", "2, 3"]);
+        assert_invalid_args(&["rut", "-f", "xyz"]);
 
         // Invalid character delimiter.
-        assert_invalid_args(vec!["rut", "-f1", "-dfoo"]);
-        assert_invalid_args(vec!["rut", "-f1", "--delimiter=foo"]);
+        assert_invalid_args(&["rut", "-f1", "-dfoo"]);
+        assert_invalid_args(&["rut", "-f1", "--delimiter=foo"]);
 
         // Invalid regex delimiter.
-        assert_invalid_args(vec!["rut", "-f1", "-r*"]);
-        assert_invalid_args(vec!["rut", "-f1", "--regex-delimiter=*"]);
-        assert_invalid_args(vec!["rut", "-f1", "-r(x"]);
-        assert_invalid_args(vec!["rut", "-f1", "--regex-delimiter=(x"]);
+        assert_invalid_args(&["rut", "-f1", "-r*"]);
+        assert_invalid_args(&["rut", "-f1", "--regex-delimiter=*"]);
+        assert_invalid_args(&["rut", "-f1", "-r(x"]);
+        assert_invalid_args(&["rut", "-f1", "--regex-delimiter=(x"]);
 
         // Repeated arguments.
-        assert_invalid_args(vec!["rut", "-f1", "-d,", "-d:"]);
-        assert_invalid_args(vec!["rut", "-f1", "-d,", "--delimiter=:"]);
-        assert_invalid_args(vec!["rut", "-f1", "-r\\d+", "-r\\s"]);
-        assert_invalid_args(vec!["rut", "-f1", "-r\\d+", "--regex-delimiter=\\s"]);
-        assert_invalid_args(vec!["rut", "-f1", "-o,", "-o:"]);
-        assert_invalid_args(vec!["rut", "-f1", "-o,", "--output-delimiter:"]);
+        assert_invalid_args(&["rut", "-f1", "-d,", "-d:"]);
+        assert_invalid_args(&["rut", "-f1", "-d,", "--delimiter=:"]);
+        assert_invalid_args(&["rut", "-f1", "-r\\d+", "-r\\s"]);
+        assert_invalid_args(&["rut", "-f1", "-r\\d+", "--regex-delimiter=\\s"]);
+        assert_invalid_args(&["rut", "-f1", "-o,", "-o:"]);
+        assert_invalid_args(&["rut", "-f1", "-o,", "--output-delimiter:"]);
     }
 
     #[test]
-    fn test_invalid_arg_combination() {
+    fn invalid_arg_combination() {
         // Multiple modes.
-        assert_invalid_args(vec!["rut", "-b1", "-c1"]);
-        assert_invalid_args(vec!["rut", "-b1", "-f1"]);
-        assert_invalid_args(vec!["rut", "-c1", "-f1"]);
-        assert_invalid_args(vec!["rut", "-b1", "-c1", "-f1"]);
+        assert_invalid_args(&["rut", "-b1", "-c1"]);
+        assert_invalid_args(&["rut", "-b1", "-f1"]);
+        assert_invalid_args(&["rut", "-c1", "-f1"]);
+        assert_invalid_args(&["rut", "-b1", "-c1", "-f1"]);
 
         // Field mode arguments (-s, -d, -r, -o) with non-field mode.
-        assert_invalid_args(vec!["rut", "-b1", "-s"]);
-        assert_invalid_args(vec!["rut", "-b1", "-d,"]);
-        assert_invalid_args(vec!["rut", "-b1", "-o#"]);
-        assert_invalid_args(vec!["rut", "-b1", "-r_"]);
-        assert_invalid_args(vec!["rut", "-c1", "-s"]);
-        assert_invalid_args(vec!["rut", "-c1", "-d,"]);
-        assert_invalid_args(vec!["rut", "-c1", "-r_"]);
-        assert_invalid_args(vec!["rut", "-b1", "-o#"]);
+        assert_invalid_args(&["rut", "-b1", "-s"]);
+        assert_invalid_args(&["rut", "-b1", "-d,"]);
+        assert_invalid_args(&["rut", "-b1", "-o#"]);
+        assert_invalid_args(&["rut", "-b1", "-r_"]);
+        assert_invalid_args(&["rut", "-c1", "-s"]);
+        assert_invalid_args(&["rut", "-c1", "-d,"]);
+        assert_invalid_args(&["rut", "-c1", "-r_"]);
+        assert_invalid_args(&["rut", "-b1", "-o#"]);
     }
 
-    fn assert_valid_args(args: Vec<&str>) {
+    fn assert_valid_args(args: &[&str]) {
         let matches = super::get_app().get_matches_from(args);
         assert!(super::parse_args(&matches).is_ok());
     }
 
-    fn assert_invalid_args(args: Vec<&str>) {
+    fn assert_invalid_args(args: &[&str]) {
         if let Ok(matches) = super::get_app().get_matches_from_safe(args) {
             assert!(super::parse_args(&matches).is_err())
         }

@@ -8,11 +8,13 @@ fn all_ascii_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklmnopqrstuvwxyz
+        .stdout(
+            "abcdefghijklmnopqrstuvwxyz
 a b c d e f g h i j k l m
 a_b_c_d_e_f_g_h_i_j_k_l_m
 a:b:c:d:e:f:g:h:i:j:k:l:m
-");
+",
+        );
 }
 
 #[test]
@@ -23,11 +25,13 @@ fn all_utf8_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcdefghijklm
+        .stdout(
+            "abcdefghijklm
 αβγδεζηθικλμν
 abαβcdγδefεζ
 😀😁😂😃😄😅😆😇😈
-");
+",
+        );
 }
 
 #[test]
@@ -38,11 +42,13 @@ fn some_ascii_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout("bdhpqrstu
+        .stdout(
+            "bdhpqrstu
     i j k
 ____i_j_k
 ::::i:j:k
-");
+",
+        );
 }
 
 #[test]
@@ -53,11 +59,13 @@ fn some_utf8_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout("abcd
+        .stdout(
+            "abcd
 αβ
 abα
 😀
-");
+",
+        );
 }
 
 #[test]
@@ -68,7 +76,12 @@ fn all_binary_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout(&[1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 10, 21, 22, 23, 24, 25, 10, 31, 32, 33, 34, 35, 10][..]);
+        .stdout(
+            &[
+                1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 10, 21, 22, 23, 24, 25, 10, 31, 32, 33, 34,
+                35, 10,
+            ][..],
+        );
 }
 
 #[test]
@@ -79,7 +92,7 @@ fn some_binary_bytes() {
         .build()
         .assert()
         .code(0)
-        .stdout(&[1,3,5,10,11,13,15,10,21,23,25,10,31,33,35,10][..]);
+        .stdout(&[1, 3, 5, 10, 11, 13, 15, 10, 21, 23, 25, 10, 31, 33, 35, 10][..]);
 }
 
 #[test]
@@ -115,9 +128,8 @@ fn zero_terminated_binary() {
         .build()
         .assert()
         .code(0)
-        .stdout(&[2,4,0,12,14,0,22,24,0,32,34,0][..]);
+        .stdout(&[2, 4, 0, 12, 14, 0, 22, 24, 0, 32, 34, 0][..]);
 }
-
 
 #[test]
 fn from_stdin() {
@@ -150,14 +162,16 @@ fn multiple_files() {
         .build()
         .assert()
         .code(0)
-        .stdout("efgh
+        .stdout(
+            "efgh
 c d \nc_d_
 c:d:
 efgh
 γδ
 βcd
 😁
-");
+",
+        );
 }
 
 #[test]
@@ -167,19 +181,23 @@ fn file_and_stdin() {
         .file("-")
         .file("tests/files/ascii.txt")
         .build()
-        .write_stdin("abcdef
+        .write_stdin(
+            "abcdef
 ghijkl
-mnopqr")
+mnopqr",
+        )
         .assert()
         .code(0)
-        .stdout("abc
+        .stdout(
+            "abc
 ghi
 mno
 abc
 a b
 a_b
 a:b
-");
+",
+        );
 }
 
 #[test]
@@ -191,9 +209,11 @@ fn missing_file() {
         .build()
         .assert()
         .code(1)
-        .stdout("bcegk
+        .stdout(
+            "bcegk
  bcdf
 _bcdf
 :bcdf
-");
+",
+        );
 }
