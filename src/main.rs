@@ -11,16 +11,27 @@ fn main() {
     let matches = args::get_matches();
 
     match args::parse_args(&matches) {
-        Result::Ok(args) => cut(args),
+        Result::Ok(args) => {
+            if let Result::Err(_) = cut(args) {
+                print_error_and_exit("", matches.usage(), 1)
+            }
+        }
         Result::Err(err) => {
-            eprintln!("error: {}\n", err);
-            eprintln!("{}", matches.usage());
-            std::process::exit(1);
+            print_error_and_exit(&err, matches.usage(), 1)
         }
     }
 }
 
-fn cut(args: Args) {
+fn print_error_and_exit(error: &str, usage: &str, code: i32) {
+    if !error.is_empty() {
+        eprintln!("error: {}\n", error);
+    }
+    eprintln!("{}", usage);
+    std::process::exit(code);
+
+}
+
+fn cut(args: Args) -> Result<(), ()> {
     let filenames = args.filenames;
     let line_delimiter = args.line_delimiter;
 
@@ -62,10 +73,11 @@ fn cut(args: Args) {
     }
 }
 
-fn for_each_file<F>(filenames: Vec<String>, mut f: F)
+fn for_each_file<F>(filenames: Vec<String>, mut f: F) -> Result<(), ()>
 where
     F: FnMut(Box<dyn Read>) -> std::io::Result<()>,
 {
+    let mut error = false;
     for filename in filenames {
         let file: Box<dyn Read> = if filename == "-" {
             Box::new(std::io::stdin())
@@ -73,6 +85,7 @@ where
             match File::open(&filename) {
                 Result::Ok(file) => Box::new(file),
                 Result::Err(err) => {
+                    error = true;
                     eprintln!("{}: {}", &filename, err);
                     continue;
                 }
@@ -80,7 +93,14 @@ where
         };
 
         if let std::io::Result::Err(err) = f(file) {
+            error = true;
             eprintln!("{}: {}", &filename, err);
         }
+    }
+
+    if error {
+        Result::Err(())
+    } else {
+        Result::Ok(())
     }
 }
