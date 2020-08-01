@@ -338,6 +338,8 @@ mod tests {
         assert_invalid_args(vec!["rut", "-f1", "-d,", "--delimiter=:"]);
         assert_invalid_args(vec!["rut", "-f1", "-r\\d+", "-r\\s"]);
         assert_invalid_args(vec!["rut", "-f1", "-r\\d+", "--regex-delimiter=\\s"]);
+        assert_invalid_args(vec!["rut", "-f1", "-o,", "-o:"]);
+        assert_invalid_args(vec!["rut", "-f1", "-o,", "--output-delimiter:"]);
     }
 
     #[test]
@@ -348,7 +350,7 @@ mod tests {
         assert_invalid_args(vec!["rut", "-c1", "-f1"]);
         assert_invalid_args(vec!["rut", "-b1", "-c1", "-f1"]);
 
-        // Field mode arguments (-s, -d, -r, -j) with non-field mode.
+        // Field mode arguments (-s, -d, -r, -o) with non-field mode.
         assert_invalid_args(vec!["rut", "-b1", "-s"]);
         assert_invalid_args(vec!["rut", "-b1", "-d,"]);
         assert_invalid_args(vec!["rut", "-b1", "-o#"]);
