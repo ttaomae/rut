@@ -1,7 +1,7 @@
 use crate::range::{MergedRange, Ranges};
 use regex::Regex;
 use std::fmt::Debug;
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::result::Result;
 use std::vec::Vec;
 
@@ -175,7 +175,9 @@ where
     J: Fn(Vec<T>) -> Vec<u8>,
 {
     let mut reader = BufReader::new(input);
+    let mut writer = BufWriter::new(output);
     let mut buf = Vec::new();
+
     while reader.read_until(line_delimiter, &mut buf)? > 0 {
         if buf.ends_with(&[line_delimiter]) {
             buf.pop();
@@ -192,7 +194,7 @@ where
                 let cut_elements = select(&elements, &ranges);
                 let mut line = join(cut_elements);
                 line.push(line_delimiter);
-                output.write_all(&line)?;
+                writer.write_all(&line)?;
             }
             // For cases which must handle suppression, a single element after splitting means
             // there was no delimiter. Applies to Suppress::On and Supress::Off.
@@ -202,7 +204,7 @@ where
                     let cut_elements = select(&elements, &ranges);
                     let mut line = join(cut_elements);
                     line.push(line_delimiter);
-                    output.write_all(&line)?;
+                    writer.write_all(&line)?;
                 }
             }
             Suppress::Off => {
@@ -214,7 +216,7 @@ where
                     join(cut_elements)
                 };
                 line.push(line_delimiter);
-                output.write_all(&line)?;
+                writer.write_all(&line)?;
             }
         }
     }
