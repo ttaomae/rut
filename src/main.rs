@@ -12,7 +12,7 @@ fn main() {
 
     match args::parse_args(&matches) {
         Result::Ok(args) => {
-            if let Result::Err(_) = cut(args) {
+            if cut(args).is_err() {
                 print_error_and_exit("", matches.usage(), 1)
             }
         }
