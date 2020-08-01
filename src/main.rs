@@ -13,19 +13,17 @@ fn main() {
     match args::parse_args(&matches) {
         Result::Ok(args) => {
             if cut(args).is_err() {
-                print_error_and_exit("", matches.usage(), 1)
+                std::process::exit(1);
             }
         }
-        Result::Err(err) => print_error_and_exit(&err, matches.usage(), 1),
+        Result::Err(err) => {
+            if !err.is_empty() {
+                eprintln!("error: {}\n", err);
+            }
+            eprintln!("{}", matches.usage());
+            std::process::exit(1);
+        }
     }
-}
-
-fn print_error_and_exit(error: &str, usage: &str, code: i32) {
-    if !error.is_empty() {
-        eprintln!("error: {}\n", error);
-    }
-    eprintln!("{}", usage);
-    std::process::exit(code);
 }
 
 fn cut(args: Args) -> Result<(), ()> {
