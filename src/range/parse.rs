@@ -311,10 +311,10 @@ mod tests {
 
     fn assert_parse_ranges(input: &str, expected: &[MergedRange]) {
         let ranges: Ranges = input.parse().unwrap();
-        let mut elements = ranges.elements();
+        let mut elements = ranges.into_iter();
 
         for expected_range in expected {
-            assert_eq!(elements.next().unwrap(), expected_range);
+            assert_eq!(elements.next().unwrap(), *expected_range);
         }
         assert_eq!(elements.next(), Option::None);
     }

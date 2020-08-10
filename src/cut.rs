@@ -1,18 +1,8 @@
 use crate::range::{MergedRange, Ranges};
 use regex::Regex;
-use std::fmt::Debug;
 use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::result::Result;
 use std::vec::Vec;
-
-enum Suppress {
-    /// Not applicable.
-    NA,
-    /// Do not output lines with no delimiter.
-    On,
-    /// Output entire line if it contains no delimiter.
-    Off,
-}
 
 /// Selects bytes from the input, based on the specified ranges, and writes it to the output.
 pub(crate) fn cut_bytes<R, W>(
@@ -25,15 +15,22 @@ where
     R: Read,
     W: Write,
 {
-    cut_any(
-        input,
-        output,
-        line_delimiter,
-        |bytes| Result::Ok(bytes.to_vec()),
-        Suppress::NA,
-        |bytes| bytes,
-        ranges,
-    )
+    let mut reader = BufReader::new(input);
+    let mut writer = BufWriter::new(output);
+    let mut buf = Vec::new();
+
+    while reader.read_until(line_delimiter, &mut buf)? > 0 {
+        if buf.ends_with(&[line_delimiter]) {
+            buf.pop();
+        }
+
+        let bytes = select(&buf, ranges.clone());
+        writer.write_all(&bytes)?;
+        writer.write_all(&[line_delimiter])?;
+
+        buf.clear();
+    }
+    Result::Ok(())
 }
 
 /// Selects characters from the input, based on the specified ranges, and writes it to the output.
@@ -47,35 +44,24 @@ where
     R: Read,
     W: Write,
 {
-    cut_any(
-        input,
-        output,
-        line_delimiter,
-        // Convert to chars.
-        |bytes| {
-            let result = bytes.clone();
-            match String::from_utf8(result) {
-                Ok(string) => Result::Ok(string.chars().collect()),
-                Err(_) => Result::Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "Input was not valid UTF-8",
-                )),
-            }
-        },
-        Suppress::NA,
-        |chars| {
-            chars
-                .iter()
-                .flat_map(|ch| {
-                    let mut buf = vec![0u8; 4];
-                    let len = ch.encode_utf8(&mut buf).len();
-                    buf.truncate(len);
-                    buf
-                })
-                .collect()
-        },
-        ranges,
-    )
+    let mut reader = BufReader::new(input);
+    let mut writer = BufWriter::new(output);
+    let mut buf = Vec::new();
+
+    while reader.read_until(line_delimiter, &mut buf)? > 0 {
+        if buf.ends_with(&[line_delimiter]) {
+            buf.pop();
+        }
+
+        let line = string_from_utf8(buf.to_owned())?;
+        let selected = select(&line.chars().collect::<Vec<char>>(), ranges.clone());
+        let str = selected.iter().collect::<String>();
+        writer.write_all(&str.as_bytes())?;
+        writer.write_all(&[line_delimiter])?;
+
+        buf.clear();
+    }
+    Result::Ok(())
 }
 
 /// Splits and selects fields separated by a delimiter character. Rejoins fields using the delimiter
@@ -93,30 +79,33 @@ where
     R: Read,
     W: Write,
 {
-    cut_any(
-        input,
-        output,
-        line_delimiter,
-        |bytes| {
-            let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
-                io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
-            })?;
-            let fields: Vec<String> = line.split(field_delimiter).map(|s| s.to_string()).collect();
-            Result::Ok(fields)
-        },
-        if suppress {
-            Suppress::On
-        } else {
-            Suppress::Off
-        },
-        |fields| {
-            fields
-                .join(&output_delimiter.to_string())
-                .as_bytes()
-                .to_vec()
-        },
-        &ranges,
-    )
+    let mut reader = BufReader::new(input);
+    let mut writer = BufWriter::new(output);
+    let mut buf = Vec::new();
+
+    while reader.read_until(line_delimiter, &mut buf)? > 0 {
+        if buf.ends_with(&[line_delimiter]) {
+            buf.pop();
+        }
+        let line = string_from_utf8(buf.to_owned())?;
+
+        if line.contains(field_delimiter) {
+            let fields = line.split(field_delimiter).map(|s| s.to_string());
+            let bytes: Vec<u8> = RangeFilterIterator::new(fields, ranges.clone())
+                .collect::<Vec<String>>().join(output_delimiter)
+                .bytes()
+                .collect();
+            writer.write_all(&bytes)?;
+            writer.write_all(&[line_delimiter])?;
+
+        } else if !suppress {
+            writer.write_all(line.as_bytes())?;
+            writer.write_all(&[line_delimiter])?;
+        }
+        buf.clear();
+    }
+
+    Result::Ok(())
 }
 
 /// Splits and selects fields separated by regex delimiter. Rejoins fields using a specified
@@ -134,46 +123,6 @@ where
     R: Read,
     W: Write,
 {
-    cut_any(
-        input,
-        output,
-        line_delimiter,
-        |bytes| {
-            let line = String::from_utf8(bytes.to_vec()).map_err(|_| {
-                io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8")
-            })?;
-            let fields: Vec<String> = field_delimiter
-                .split(&line)
-                .map(|s| s.to_string())
-                .collect();
-            Result::Ok(fields)
-        },
-        if suppress {
-            Suppress::On
-        } else {
-            Suppress::Off
-        },
-        |fields| fields.join(&output_delimiter).as_bytes().to_vec(),
-        ranges,
-    )
-}
-
-fn cut_any<R, W, S, T, J>(
-    input: &mut R,
-    output: &mut W,
-    line_delimiter: u8,
-    split: S,
-    suppress: Suppress,
-    join: J,
-    ranges: &Ranges,
-) -> io::Result<()>
-where
-    R: Read,
-    W: Write,
-    S: Fn(&Vec<u8>) -> Result<Vec<T>, io::Error>,
-    T: Clone + Debug,
-    J: Fn(Vec<T>) -> Vec<u8>,
-{
     let mut reader = BufReader::new(input);
     let mut writer = BufWriter::new(output);
     let mut buf = Vec::new();
@@ -182,76 +131,117 @@ where
         if buf.ends_with(&[line_delimiter]) {
             buf.pop();
         }
-        // Split the line into elements.
-        let elements = split(&buf)?;
+        let line = string_from_utf8(buf.to_owned())?;
 
-        // Clear buffer for next line.
-        buf.clear();
+        if field_delimiter.is_match(&line) {
+            let fields = field_delimiter.split(&line).map(|s| s.to_string());
+            let bytes: Vec<u8> = RangeFilterIterator::new(fields, ranges.clone())
+                .collect::<Vec<String>>()
+                .join(&output_delimiter.to_string())
+                .bytes()
+                .collect();
+            writer.write_all(&bytes)?;
+            writer.write_all(&[line_delimiter])?;
 
-        match suppress {
-            // No special handling.
-            Suppress::NA => {
-                let cut_elements = select(&elements, &ranges);
-                let mut line = join(cut_elements);
-                line.push(line_delimiter);
-                writer.write_all(&line)?;
-            }
-            // For cases which must handle suppression, a single element after splitting means
-            // there was no delimiter. Applies to Suppress::On and Supress::Off.
-            Suppress::On => {
-                // Only output lines which contain a delimiter.
-                if elements.len() != 1 {
-                    let cut_elements = select(&elements, &ranges);
-                    let mut line = join(cut_elements);
-                    line.push(line_delimiter);
-                    writer.write_all(&line)?;
-                }
-            }
-            Suppress::Off => {
-                // Output entire line if there is no delimiter.
-                let mut line = if elements.len() == 1 {
-                    join(elements)
-                } else {
-                    let cut_elements = select(&elements, &ranges);
-                    join(cut_elements)
-                };
-                line.push(line_delimiter);
-                writer.write_all(&line)?;
-            }
+        } else if !suppress {
+            writer.write_all(line.as_bytes())?;
+            writer.write_all(&[line_delimiter])?;
         }
+        buf.clear();
     }
+
     Result::Ok(())
 }
 
-/// Selects the specified ranges from the input slice and returns a `Vec` with those elements.
-fn select<T: Clone + Debug>(input: &[T], ranges: &Ranges) -> Vec<T> {
-    let mut result = Vec::new();
+fn string_from_utf8(bytes: Vec<u8>) -> io::Result<String> {
+    String::from_utf8(bytes)
+        .map_err(|_| { io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8") })
+}
 
-    for range in ranges.elements() {
-        match range {
-            MergedRange::Closed(s, e) => {
-                // Range is outside size of input and since ranges are sorted, all following ranges
-                // will also be outside input. Skip and break from loop.
-                if *s >= input.len() {
-                    break;
+struct RangeFilterIterator<I> {
+    inner: I,
+    /// Index of next element of `inner`.
+    next_index: usize,
+    ranges: Box<dyn Iterator<Item = MergedRange>>,
+    current_range: Option<MergedRange>
+}
+
+impl<'a, I: Iterator<Item=T>, T> RangeFilterIterator<I> {
+    fn new<Into: IntoIterator<Item = T, IntoIter = I>>(into_inner: Into, ranges: Ranges) -> Self {
+        let mut ranges = Box::new(ranges.into_iter());
+        let current_range = ranges.next();
+        RangeFilterIterator {
+            inner: into_inner.into_iter(), next_index: 0, ranges, current_range
+        }
+    }
+
+    fn advance_inner(&mut self, until: usize) {
+        while self.next_index < until {
+            self.next_index += 1;
+            self.inner.next();
+        }
+    }
+}
+
+impl<'a, I: Iterator<Item=T>, T> Iterator for RangeFilterIterator<I> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current_range {
+            Some(MergedRange::Closed(start, end)) => {
+                self.advance_inner(start);
+
+                // Return inner.next() if we are still withing the current range.
+                if self.next_index <= end {
+                    self.next_index += 1;
+                    self.inner.next()
+                }
+                // Update current range then try again.
+                else {
+                    self.current_range = self.ranges.next();
+                    self.next()
                 }
 
-                // Otherwise include elements in range, up to the last element.
-                let end = std::cmp::min(*e + 1, input.len());
-                result.extend_from_slice(&input[*s..end]);
             }
-            MergedRange::ToEnd(s) => {
-                // Range is outside size of input and since ranges are sorted, all following ranges
-                // will also be outside input. Skip and break from loop.
-                if *s >= input.len() {
-                    break;
-                }
+            Some(MergedRange::ToEnd(start)) => {
+                // Since ranges are sorted, there can be nothing after a ToEnd range.
+                // Advance inner if necessary, then return all remaining elements.
+                self.advance_inner(start);
+                self.inner.next()
 
-                // Otherwise include the remaining elements.
-                result.extend_from_slice(&input[*s..])
+            }
+            None => {
+                Option::None
             }
         }
     }
+}
+
+fn select<T: Clone>(input: &[T], ranges: Ranges) -> Vec<T> {
+     let mut result = Vec::new();
+
+     for range in ranges.into_iter() {
+        match range {
+            MergedRange::Closed(start, end) => {
+                // Range is outside size of input. Since ranges are sorted, all following ranges
+                // will also be outside of input. Skip and break from loop.
+                if start >= input.len() {
+                    break;
+                }
+                // Otherwise include elements in range, up to the last element.
+                let end = std::cmp::min(end + 1, input.len());
+                result.extend_from_slice(&input[start..end])
+            }
+            MergedRange::ToEnd(start) => {
+                // Range is outside size of input. Since ranges are sorted, all following ranges
+                // will also be outside of input. Skip and break from loop.
+                if start >= input.len() {
+                    break;
+                }
+                // Otherwise include the remaining elements.
+                result.extend_from_slice(&input[start..])
+            }
+        }
+     }
 
     result
 }

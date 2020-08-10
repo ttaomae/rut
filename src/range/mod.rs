@@ -32,7 +32,7 @@ impl IncreasingRange {
 }
 
 /// A set of simplified and merged `CutRange`s. See [`MergedRange`].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Ranges {
     pub(crate) ranges: Vec<MergedRange>,
 }
@@ -150,10 +150,15 @@ impl Ranges {
 
         Ranges { ranges: result }
     }
+}
 
-    pub(crate) fn elements(&self) -> impl Iterator<Item = &MergedRange> {
-        self.ranges.iter()
+impl IntoIterator for Ranges {
+    type Item = MergedRange;
+    type IntoIter = std::vec::IntoIter<MergedRange>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.ranges.into_iter()
     }
+
 }
 
 impl FromStr for Ranges {
@@ -171,7 +176,7 @@ mod tests {
     #[test]
     fn from_no_ranges() {
         let ranges = Ranges::from_ranges(&[]);
-        assert_eq!(ranges.elements().next(), Option::None);
+        assert_eq!(ranges.into_iter().next(), Option::None);
     }
 
     #[test]
@@ -435,8 +440,8 @@ mod tests {
 
     fn assert_simplify_to_single_range(input_ranges: &[CutRange], expected_range: MergedRange) {
         let actual_ranges = Ranges::from_ranges(input_ranges);
-        let mut elements = actual_ranges.elements();
-        assert_eq!(elements.next(), Option::Some(&expected_range));
+        let mut elements = actual_ranges.into_iter();
+        assert_eq!(elements.next(), Option::Some(expected_range));
         assert_eq!(elements.next(), Option::None);
     }
 
@@ -445,10 +450,10 @@ mod tests {
         expected_ranges: &[MergedRange],
     ) {
         let actual_ranges = Ranges::from_ranges(input_ranges);
-        let mut elements = actual_ranges.elements();
+        let mut elements = actual_ranges.into_iter();
 
         for expected_range in expected_ranges {
-            assert_eq!(elements.next().unwrap(), expected_range);
+            assert_eq!(elements.next().unwrap(), *expected_range);
         }
         assert_eq!(elements.next(), Option::None);
     }
