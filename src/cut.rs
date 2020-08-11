@@ -92,12 +92,12 @@ where
         if line.contains(field_delimiter) {
             let fields = line.split(field_delimiter).map(|s| s.to_string());
             let bytes: Vec<u8> = RangeFilterIterator::new(fields, ranges.clone())
-                .collect::<Vec<String>>().join(output_delimiter)
+                .collect::<Vec<String>>()
+                .join(output_delimiter)
                 .bytes()
                 .collect();
             writer.write_all(&bytes)?;
             writer.write_all(&[line_delimiter])?;
-
         } else if !suppress {
             writer.write_all(line.as_bytes())?;
             writer.write_all(&[line_delimiter])?;
@@ -142,7 +142,6 @@ where
                 .collect();
             writer.write_all(&bytes)?;
             writer.write_all(&[line_delimiter])?;
-
         } else if !suppress {
             writer.write_all(line.as_bytes())?;
             writer.write_all(&[line_delimiter])?;
@@ -155,7 +154,7 @@ where
 
 fn string_from_utf8(bytes: Vec<u8>) -> io::Result<String> {
     String::from_utf8(bytes)
-        .map_err(|_| { io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8") })
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Input was not valid UTF-8"))
 }
 
 struct RangeFilterIterator<I> {
@@ -163,15 +162,18 @@ struct RangeFilterIterator<I> {
     /// Index of next element of `inner`.
     next_index: usize,
     ranges: Box<dyn Iterator<Item = MergedRange>>,
-    current_range: Option<MergedRange>
+    current_range: Option<MergedRange>,
 }
 
-impl<'a, I: Iterator<Item=T>, T> RangeFilterIterator<I> {
+impl<'a, I: Iterator<Item = T>, T> RangeFilterIterator<I> {
     fn new<Into: IntoIterator<Item = T, IntoIter = I>>(into_inner: Into, ranges: Ranges) -> Self {
         let mut ranges = Box::new(ranges.into_iter());
         let current_range = ranges.next();
         RangeFilterIterator {
-            inner: into_inner.into_iter(), next_index: 0, ranges, current_range
+            inner: into_inner.into_iter(),
+            next_index: 0,
+            ranges,
+            current_range,
         }
     }
 
@@ -183,7 +185,7 @@ impl<'a, I: Iterator<Item=T>, T> RangeFilterIterator<I> {
     }
 }
 
-impl<'a, I: Iterator<Item=T>, T> Iterator for RangeFilterIterator<I> {
+impl<'a, I: Iterator<Item = T>, T> Iterator for RangeFilterIterator<I> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         match self.current_range {
@@ -200,26 +202,22 @@ impl<'a, I: Iterator<Item=T>, T> Iterator for RangeFilterIterator<I> {
                     self.current_range = self.ranges.next();
                     self.next()
                 }
-
             }
             Some(MergedRange::ToEnd(start)) => {
                 // Since ranges are sorted, there can be nothing after a ToEnd range.
                 // Advance inner if necessary, then return all remaining elements.
                 self.advance_inner(start);
                 self.inner.next()
-
             }
-            None => {
-                Option::None
-            }
+            None => Option::None,
         }
     }
 }
 
 fn select<T: Clone>(input: &[T], ranges: Ranges) -> Vec<T> {
-     let mut result = Vec::new();
+    let mut result = Vec::new();
 
-     for range in ranges.into_iter() {
+    for range in ranges.into_iter() {
         match range {
             MergedRange::Closed(start, end) => {
                 // Range is outside size of input. Since ranges are sorted, all following ranges
@@ -241,7 +239,7 @@ fn select<T: Clone>(input: &[T], ranges: Ranges) -> Vec<T> {
                 result.extend_from_slice(&input[start..])
             }
         }
-     }
+    }
 
     result
 }

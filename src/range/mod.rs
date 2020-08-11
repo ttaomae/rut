@@ -158,7 +158,6 @@ impl IntoIterator for Ranges {
     fn into_iter(self) -> Self::IntoIter {
         self.ranges.into_iter()
     }
-
 }
 
 impl FromStr for Ranges {
