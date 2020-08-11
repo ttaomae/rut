@@ -1349,4 +1349,55 @@ mod tests {
         let actual = String::from_utf8(output).unwrap();
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn cut_empty_ranges() {
+        let empty_ranges = "1-".parse::<Ranges>().unwrap().complement();
+        let mut output = Vec::new();
+
+        super::cut_bytes(
+            &mut "abc\ndef".as_bytes(),
+            &mut output,
+            b'\n',
+            &empty_ranges,
+        )
+        .unwrap();
+        assert_eq!(output, vec![b'\n', b'\n']);
+
+        output.clear();
+        super::cut_characters(
+            &mut "abc\ndef".as_bytes(),
+            &mut output,
+            b'\n',
+            &empty_ranges,
+        )
+        .unwrap();
+        assert_eq!(output, vec![b'\n', b'\n']);
+
+        output.clear();
+        super::cut_fields_with_char(
+            &mut "a b c\nd e f".as_bytes(),
+            &mut output,
+            b'\n',
+            ' ',
+            " ",
+            false,
+            &empty_ranges,
+        )
+        .unwrap();
+        assert_eq!(output, vec![b'\n', b'\n']);
+
+        output.clear();
+        super::cut_fields_with_regex(
+            &mut "a b c\nd e f".as_bytes(),
+            &mut output,
+            b'\n',
+            &Regex::new(&r"\s+").unwrap(),
+            " ",
+            false,
+            &empty_ranges,
+        )
+        .unwrap();
+        assert_eq!(output, vec![b'\n', b'\n']);
+    }
 }

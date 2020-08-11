@@ -37,6 +37,14 @@ pub(crate) struct Ranges {
     pub(crate) ranges: Vec<MergedRange>,
 }
 
+impl PartialEq for Ranges {
+    fn eq(&self, other: &Ranges) -> bool {
+        self.ranges == other.ranges
+    }
+}
+
+impl Eq for Ranges {}
+
 /// Simplified view of one or more merged `CutRange`s.
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum MergedRange {
@@ -149,6 +157,34 @@ impl Ranges {
         result.push(merge_chain);
 
         Ranges { ranges: result }
+    }
+
+    pub(crate) fn complement(self) -> Ranges {
+        let mut next = 0usize;
+        let mut open = false;
+        let mut ranges = Vec::new();
+
+        for range in self.ranges {
+            match range {
+                MergedRange::Closed(start, end) => {
+                    if start != 0 {
+                        ranges.push(MergedRange::Closed(next, start - 1));
+                    }
+                    next = end + 1;
+                }
+                MergedRange::ToEnd(start) => {
+                    if start != 0 {
+                        ranges.push(MergedRange::Closed(next, start - 1));
+                    }
+                    open = true;
+                }
+            }
+        }
+
+        if !open {
+            ranges.push(MergedRange::ToEnd(next));
+        }
+        Ranges { ranges }
     }
 }
 
@@ -437,6 +473,34 @@ mod tests {
         );
     }
 
+    #[test]
+    fn complement_empty() {
+        let ranges: Ranges = "1-".parse().unwrap();
+        let completement = ranges.complement();
+        assert!(completement.ranges.is_empty());
+    }
+
+    #[test]
+    fn complement_single_range() {
+        assert_complement("1", "2-");
+        assert_complement("2", "1,3-");
+        assert_complement("3", "1-2,4-");
+        assert_complement("4", "1-3,5-");
+        assert_complement("1-2", "3-");
+        assert_complement("3-4", "1-2,5-");
+        assert_complement("5-10", "1-4,11-");
+    }
+
+    #[test]
+    fn complement_multiple_ranges() {
+        assert_complement("1,3", "2,4-");
+        assert_complement("2,4,6,8", "1,3,5,7,9-");
+        assert_complement("1-3,5-7", "4,8-");
+        assert_complement("2-4,8-16", "1,5-7,17-");
+        assert_complement("1-10,20-", "11-19");
+        assert_complement("3-6,10-20,40-", "1-2,7-9,21-39");
+    }
+
     fn assert_simplify_to_single_range(input_ranges: &[CutRange], expected_range: MergedRange) {
         let actual_ranges = Ranges::from_ranges(input_ranges);
         let mut elements = actual_ranges.into_iter();
@@ -455,6 +519,12 @@ mod tests {
             assert_eq!(elements.next().unwrap(), *expected_range);
         }
         assert_eq!(elements.next(), Option::None);
+    }
+
+    fn assert_complement(ranges: &str, complement: &str) {
+        let actual = ranges.parse::<Ranges>().unwrap().complement();
+        let expected = complement.parse().unwrap();
+        assert_eq!(actual, expected);
     }
 
     // Helper function to simplify the creation of CutRange::Closed.
