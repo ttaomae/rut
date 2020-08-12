@@ -69,6 +69,36 @@ abαβ
 }
 
 #[test]
+fn ranges_complement() {
+    util::test_command()
+        .option("-c2-4,8-")
+        .option("--complement")
+        .file("tests/files/utf8.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout(
+            "aefg
+αεζη
+acdγ
+😀😄😅😆
+",
+        );
+}
+
+#[test]
+fn empty_ranges() {
+    util::test_command()
+        .option("-c1-")
+        .option("--complement")
+        .file("tests/files/ascii.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout("\n\n\n\n");
+}
+
+#[test]
 fn zero_terminated_ascii() {
     util::test_command()
         .option("-c1,3,5")

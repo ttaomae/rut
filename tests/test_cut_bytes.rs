@@ -96,6 +96,36 @@ fn some_binary_bytes() {
 }
 
 #[test]
+fn ranges_complement() {
+    util::test_command()
+        .option("-b1-4,9-12")
+        .option("--complement")
+        .file("tests/files/utf8.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout(
+            "efghm
+γδηθικλμν
+βcdefεζ
+😁😃😄😅😆😇😈
+",
+        );
+}
+
+#[test]
+fn empty_ranges() {
+    util::test_command()
+        .option("-b1-")
+        .option("--complement")
+        .file("tests/files/ascii.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout("\n\n\n\n");
+}
+
+#[test]
 fn zero_terminated_ascii() {
     util::test_command()
         .option("-b1,3,5")

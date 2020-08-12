@@ -6,6 +6,7 @@ use regex::Regex;
 static BYTES: &str = "bytes";
 static CHARACTERS: &str = "characters";
 static FIELDS: &str = "fields";
+static COMPLEMENT: &str = "complement";
 static SUPPRESS: &str = "suppress";
 static CHAR_DELIMITER: &str = "char_delimiter";
 static REGEX_DELIMITER: &str = "regex_delimiter";
@@ -105,6 +106,14 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .display_order(5)
         )
         .arg(
+            Arg::with_name(COMPLEMENT)
+                .long("complement")
+                .help("Complement the set of selected bytes, characters, or fields.")
+                .takes_value(false)
+                .multiple(true)
+                .display_order(0)
+        )
+        .arg(
             Arg::with_name(SUPPRESS)
                 .short("s")
                 .long("suppress")
@@ -112,7 +121,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(false)
                 .multiple(true)
                 .conflicts_with_all(&[BYTES, CHARACTERS])
-                .display_order(0)
+                .display_order(1)
         )
         .arg(
             Arg::with_name(ZERO_TERMINATED)
@@ -121,7 +130,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .help("Delimits items with a zero byte rather than a newline (0x0A)")
                 .multiple(true)
                 .takes_value(false)
-                .display_order(1)
+                .display_order(2)
         )
         .arg(
             Arg::with_name(FILE)
@@ -133,12 +142,14 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
+    let complement = matches.is_present(COMPLEMENT);
+
     let mode_args = if let Some(ranges) = matches.value_of(BYTES) {
-        ModeArgs::Bytes(validate_ranges(ranges)?)
+        ModeArgs::Bytes(validate_ranges(ranges, complement)?)
     } else if let Some(ranges) = matches.value_of(CHARACTERS) {
-        ModeArgs::Characters(validate_ranges(ranges)?)
+        ModeArgs::Characters(validate_ranges(ranges, complement)?)
     } else if let Some(ranges) = matches.value_of(FIELDS) {
-        let ranges = validate_ranges(ranges)?;
+        let ranges = validate_ranges(ranges, complement)?;
         let suppress = matches.is_present(SUPPRESS);
         match (
             matches.value_of(REGEX_DELIMITER),
@@ -200,11 +211,20 @@ pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
 }
 
 /// Validates and returns the value as ranges, or returns an error message if validation fails.
-fn validate_ranges(value: &str) -> Result<Ranges, String> {
+fn validate_ranges(value: &str, complement: bool) -> Result<Ranges, String> {
     if value.is_empty() {
         return Result::Err(String::from("List of ranges must be provided"));
     }
-    value.parse::<Ranges>().map_err(|e| e.to_string())
+    value
+        .parse::<Ranges>()
+        .map(|ranges| {
+            if complement {
+                ranges.complement()
+            } else {
+                ranges
+            }
+        })
+        .map_err(|e| e.to_string())
 }
 
 /// Validates and returns the value as a character, or returns an error message if it is not a single character.
@@ -254,6 +274,13 @@ mod tests {
         assert_valid_args(&["rut", "-f", "1"]);
         assert_valid_args(&["rut", "--fields=1"]);
         assert_valid_args(&["rut", "--fields", "1"]);
+
+        assert_valid_args(&["rut", "-b1", "--complement"]);
+        assert_valid_args(&["rut", "-b1", "--complement", "--complement"]);
+        assert_valid_args(&["rut", "-c1", "--complement"]);
+        assert_valid_args(&["rut", "-c1", "--complement", "--complement"]);
+        assert_valid_args(&["rut", "-f1", "--complement"]);
+        assert_valid_args(&["rut", "-f1", "--complement", "--complement"]);
 
         assert_valid_args(&["rut", "-f1", "-d,"]);
         assert_valid_args(&["rut", "-f1", "-d=,"]);

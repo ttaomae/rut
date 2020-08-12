@@ -148,6 +148,38 @@ fn utf8_regex_delimiter() {
 }
 
 #[test]
+fn ranges_complement() {
+    util::test_command()
+        .option("-f3-6,9-12")
+        .option("--complement")
+        .option("--suppress")
+        .option("--regex-delimiter=[ _:]")
+        .file("tests/files/ascii.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout(
+            "a\tb\tg\th\tm
+a\tb\tg\th\tm
+a\tb\tg\th\tm
+",
+        );
+}
+
+#[test]
+fn empty_ranges() {
+    util::test_command()
+        .option("-f1-")
+        .option("--complement")
+        .option("--regex-delimiter=.")
+        .file("tests/files/ascii.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout("\n\n\n\n");
+}
+
+#[test]
 fn zero_terminated_ascii() {
     util::test_command()
         .option("-f2-3")
