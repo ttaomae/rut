@@ -6,12 +6,13 @@ use regex::Regex;
 static BYTES: &str = "bytes";
 static CHARACTERS: &str = "characters";
 static FIELDS: &str = "fields";
-static COMPLEMENT: &str = "complement";
-static SUPPRESS: &str = "suppress";
 static CHAR_DELIMITER: &str = "char_delimiter";
 static REGEX_DELIMITER: &str = "regex_delimiter";
 static OUTPUT_DELIMITER: &str = "output_delimiter";
+static COMPLEMENT: &str = "complement";
+static SUPPRESS: &str = "suppress";
 static ZERO_TERMINATED: &str = "zero_terminated";
+static NO_SPLIT: &str = "no_split";
 static FILE: &str = "file";
 static USAGE: &str = r"rut -b <ranges> [file]...
     rut -c <ranges> [file]...
@@ -116,7 +117,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name(SUPPRESS)
                 .short("s")
-                .long("suppress")
+                .long("only-delimited")
                 .help("Suppress lines with no delimiter characters, when used with the -f option.")
                 .takes_value(false)
                 .multiple(true)
@@ -131,6 +132,15 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .multiple(true)
                 .takes_value(false)
                 .display_order(2)
+        )
+        .arg(
+            Arg::with_name(NO_SPLIT)
+                .short("n")
+                .help("Do not split multi-byte characters. Not yet implemented (no-op).")
+                .multiple(true)
+                .takes_value(false)
+                .conflicts_with_all(&[CHARACTERS, FIELDS])
+                .display_order(3)
         )
         .arg(
             Arg::with_name(FILE)
@@ -315,8 +325,8 @@ mod tests {
         assert_valid_args(&["rut", "-f1", "-s"]);
         assert_valid_args(&["rut", "-f1", "-ss"]);
         assert_valid_args(&["rut", "-f1", "-s", "-s"]);
-        assert_valid_args(&["rut", "-f1", "--suppress"]);
-        assert_valid_args(&["rut", "-f1", "-s", "--suppress"]);
+        assert_valid_args(&["rut", "-f1", "--only-delimited"]);
+        assert_valid_args(&["rut", "-f1", "-s", "--only-delimited"]);
 
         assert_valid_args(&["rut", "-b1", "-z"]);
         assert_valid_args(&["rut", "-b1", "-zz"]);
@@ -327,6 +337,8 @@ mod tests {
         assert_valid_args(&["rut", "-f1", "-z"]);
         assert_valid_args(&["rut", "-f1", "--zero-terminated", "-z"]);
         assert_valid_args(&["rut", "-f1", "-z", "-z", "-zz"]);
+
+        assert_valid_args(&["rut", "-b1", "-n"]);
     }
 
     #[test]
@@ -386,6 +398,10 @@ mod tests {
         assert_invalid_args(&["rut", "-c1", "-d,"]);
         assert_invalid_args(&["rut", "-c1", "-r_"]);
         assert_invalid_args(&["rut", "-b1", "-o#"]);
+
+        // -n with non-bytes mode.
+        assert_invalid_args(&["rut", "-c1", "-n"]);
+        assert_invalid_args(&["rut", "-f1", "-n"]);
     }
 
     fn assert_valid_args(args: &[&str]) {

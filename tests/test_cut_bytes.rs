@@ -247,3 +247,22 @@ _bcdf
 ",
         );
 }
+
+#[test]
+fn no_split_multi_byte_character() {
+    // -n is currently not impemented, so this behaves the same as without the option.
+    util::test_command()
+        .option("-b1-4")
+        .option("-n")
+        .file("tests/files/utf8.txt")
+        .build()
+        .assert()
+        .code(0)
+        .stdout(
+            "abcd
+αβ
+abα
+😀
+",
+        );
+}

@@ -152,7 +152,7 @@ fn ranges_complement() {
     util::test_command()
         .option("-f3-6,9-12")
         .option("--complement")
-        .option("--suppress")
+        .option("--only-delimited")
         .option("--regex-delimiter=[ _:]")
         .file("tests/files/ascii.txt")
         .build()

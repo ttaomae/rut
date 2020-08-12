@@ -47,6 +47,12 @@ fn repeated_options() {
     assert_invalid_options(&[]);
 }
 
+#[test]
+fn n_with_non_byte_mode() {
+    assert_invalid_options(&["-c1", "-n"]);
+    assert_invalid_options(&["-f1", "-n"]);
+}
+
 fn assert_invalid_options(options: &[&str]) {
     util::test_command()
         .options(options)
