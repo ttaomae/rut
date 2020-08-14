@@ -1,6 +1,6 @@
 use crate::range::Ranges;
 
-use clap::{App, Arg, ArgGroup, ArgMatches};
+use clap::{crate_version, App, Arg, ArgGroup, ArgMatches};
 use regex::Regex;
 
 static BYTES: &str = "bytes";
@@ -37,7 +37,7 @@ pub(crate) fn get_matches<'a>() -> ArgMatches<'a> {
 
 fn get_app<'a, 'b>() -> App<'a, 'b> {
     App::new("rut")
-        .version("0.0.1")
+        .version(crate_version!())
         .usage(USAGE)
         .arg(
             Arg::with_name(BYTES)
