@@ -47,6 +47,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("ranges")
                 .help("Cut based on list of bytes")
                 .takes_value(true)
+                .empty_values(false)
                 .display_order(0)
         )
         .arg(
@@ -57,6 +58,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("ranges")
                 .help("Cut based on a list of characters.")
                 .takes_value(true)
+                .empty_values(false)
                 .display_order(1)
         )
         .arg(
@@ -67,6 +69,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("ranges")
                 .help("Cut based on a list of fields, assumed to be separated by a delimiter character.")
                 .takes_value(true)
+                .empty_values(false)
                 .display_order(2)
         )
         .group(
@@ -83,6 +86,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("delim")
                 .help("Set the field delimiter to the character delim.")
                 .takes_value(true)
+                .empty_values(false)
                 .conflicts_with_all(&[BYTES, CHARACTERS, REGEX_DELIMITER])
                 .display_order(3)
         )
@@ -93,6 +97,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("regex")
                 .help("Set the field delimiter to the regular expression.")
                 .takes_value(true)
+                .empty_values(false)
                 .conflicts_with_all(&[BYTES, CHARACTERS, CHAR_DELIMITER])
                 .display_order(4)
         )
@@ -103,6 +108,7 @@ fn get_app<'a, 'b>() -> App<'a, 'b> {
                 .value_name("output-delim")
                 .help("Set the string used to delimit selected fields (-f).")
                 .takes_value(true)
+                .empty_values(false)
                 .conflicts_with_all(&[BYTES, CHARACTERS])
                 .display_order(5)
         )
@@ -222,9 +228,9 @@ pub(crate) fn parse_args(matches: &ArgMatches) -> Result<Args, String> {
 
 /// Validates and returns the value as ranges, or returns an error message if validation fails.
 fn validate_ranges(value: &str, complement: bool) -> Result<Ranges, String> {
-    if value.is_empty() {
-        return Result::Err(String::from("List of ranges must be provided"));
-    }
+    // Clap should ensure that a non-empty range is provided.
+    debug_assert!(!value.is_empty());
+
     value
         .parse::<Ranges>()
         .map(|ranges| {
@@ -248,8 +254,9 @@ fn validate_char_delimiter(value: &str) -> Result<char, String> {
     };
     // Delimiter must not be more than one character.
     if chars.next().is_some() {
-        return Result::Err(String::from(
-            "'--delimiter <delim>' must be a single character",
+        return Result::Err(format!(
+            "'--delimiter <delim>' must be a single character, but was \"{}\"",
+            &value
         ));
     }
 
@@ -259,7 +266,10 @@ fn validate_char_delimiter(value: &str) -> Result<char, String> {
 /// Validates and returns the value as a regular expression, or returns an error message if it is not a valid expression.
 fn validate_regex_delimiter(value: &str) -> Result<Regex, String> {
     Result::Ok(Regex::new(value).map_err(|_| {
-        String::from("A valid regular expression must be provided with '--regex-delimiter <regex>'")
+        format!(
+            "'--regex-delimiter <regex>' must be a valid regular expression, but was \"{}\"",
+            &value
+        )
     })?)
 }
 
@@ -346,13 +356,21 @@ mod tests {
         // No arguments
         assert_invalid_args(&["rut", "-b"]);
 
-        // Missing value
+        // Missing range.
         assert_invalid_args(&["rut", "-b"]);
         assert_invalid_args(&["rut", "--bytes"]);
         assert_invalid_args(&["rut", "-c"]);
         assert_invalid_args(&["rut", "--characters"]);
         assert_invalid_args(&["rut", "-f"]);
         assert_invalid_args(&["rut", "--fields"]);
+
+        // Empty range.
+        assert_invalid_args(&["rut", "-b", ""]);
+        assert_invalid_args(&["rut", "--bytes", ""]);
+        assert_invalid_args(&["rut", "-c", ""]);
+        assert_invalid_args(&["rut", "--characters", ""]);
+        assert_invalid_args(&["rut", "-f", ""]);
+        assert_invalid_args(&["rut", "--fields", ""]);
 
         // Invalid range.
         assert_invalid_args(&["rut", "-b", "2-1"]);
