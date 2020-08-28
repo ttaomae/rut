@@ -100,3 +100,17 @@ For release mode (slower compile times, faster executable), use:
 ```bash
 $ cargo build --release
 ```
+
+## Package for Release
+Build scripts are provided to create a release package. Follow the instructions
+below to build an archive (`.zip` or `.tar.gz`) in the `target` directory.
+
+### Windows
+```powershell
+$ .\Create-Release.ps1
+```
+
+### Linux
+```bash
+$ ./create-release.sh
+```
